@@ -6,7 +6,7 @@ import yfinance as yf
 
 # 1. 사이버펑크 토토 아레나 다크 테마 설정
 st.set_page_config(
-    page_title="⚡ 청개구리 인덱스 - 미니 룰렛 v3.4", 
+    page_title="⚡ 청개구리 인덱스 - 하이퍼 밸런스 v3.5", 
     page_icon="⚡",
     layout="wide"
 )
@@ -43,7 +43,7 @@ def get_global_server_data_hub():
             "셀트리온": {"UP": 0, "DOWN": 0}
         },
         "global_chat_stream": [
-            {"name": "<span style='color:#A3E635; font-weight:bold;'>[📢 공지] 운영진_🐸</span>", "text": "⚡ v3.4 아레나 미니 룰렛 머신이 입고되었습니다! 하루 5번, 10포인트로 대박을 노려보세요!"}
+            {"name": "<span style='color:#A3E635; font-weight:bold;'>[📢 공지] 운영진_🐸</span>", "text": "⚡ v3.5 아레나 UI 밸런스 패치 완료! 미니 룰렛이 메인 센터 탭으로 전격 재배치되었습니다."}
         ],
         "loudsheet_announcement": None,  
         "burst_match_status": {},          
@@ -60,13 +60,6 @@ global_server = get_global_server_data_hub()
 if "user_login_data" not in st.session_state:
     st.session_state["user_login_data"] = None
 
-if "chat_messages" not in st.session_state:
-    st.session_state["chat_messages"] = [
-        {"role": "user", "name": "여의도작두", "text": "와 새로 생긴 룰렛에서 10포인트 넣고 바로 100포인트 터짐 지렸다"}, 
-        {"role": "user", "name": "반대로만사는대리", "text": "난 오늘 5판 돌렸는데 3판이 꽝이네.. 역시 난 청개구리인가"},
-        {"role": "user", "name": "국장구조대", "text": "배팅 락 걸려서 심심할 때 한 판씩 돌리기 딱 좋네요"}
-    ]
-
 # 유저 실시간 데이터 프로필
 if "my_arena_profile" not in st.session_state:
     st.session_state["my_arena_profile"] = {
@@ -78,7 +71,6 @@ if "my_arena_profile" not in st.session_state:
         "win_matches": 0,     
         "title": "🥈 SILVER",
         "active_medal": "🌱 응애 파이터",
-        # 🎰 룰렛 제어용 일일 스케줄 데이터 키 신설
         "roulette_count": 0,
         "roulette_date": ""
     }
@@ -115,7 +107,7 @@ elif st.session_state["user_login_data"] is None:
             <h1 style="color: #A3E635; font-size: 42px; font-weight: 900; letter-spacing: -2px; text-shadow: 0 0 15px rgba(163,230,53,0.6); margin-bottom: 5px;">
                 ⚡ FROG ARENA TERMINAL
             </h1>
-            <p style="color: #22D3EE; font-size: 13px; font-weight: bold; letter-spacing: 2px;">일일 한정 미니 룰렛이 탑재된 아레나 터미널에 로그인하십시오.</p>
+            <p style="color: #22D3EE; font-size: 13px; font-weight: bold; letter-spacing: 2px;">레이아웃 최적화 10분 매크로 아레나에 로그인하십시오.</p>
         </div>
     """, unsafe_allow_html=True)
     
@@ -134,7 +126,7 @@ elif st.session_state["user_login_data"] is None:
                     "points": 1000, "total_matches": 0, "win_matches": 0, "title": "🥈 SILVER",
                     "active_medal": "🌱 응애 파이터", "roulette_count": 0, "roulette_date": ""
                 }
-                st.toast(f"⚡ 미니 룰렛 모듈 동기화 완료.", icon="⚡")
+                st.toast(f"⚡ 3.5 버전 인프라 포트 결합 성공.", icon="⚡")
                 st.rerun()
 
 # 정식 청개구리 아레나 가동
@@ -145,20 +137,22 @@ else:
         "셀트리온": "068270.KS"
     }
 
+    # 최상단 네온 간판 헤더
     st.markdown("""
         <div style="background: linear-gradient(90deg, #1E1B4B 0%, #0F172A 100%); padding: 20px; border-radius: 12px; border: 2px solid #A3E635; box-shadow: 0 0 20px rgba(163,230,53,0.2); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
             <div>
                 <h1 style="color: #A3E635; font-size: 36px; font-weight: 900; margin: 0; letter-spacing: -2px; text-shadow: 0 0 10px rgba(163,230,53,0.4);">
                     ⚡ FROG INDEX ARENA
                 </h1>
-                <p style="font-size: 11px; color: #38BDF8; margin: 4px 0 0 0; font-weight: bold; letter-spacing: 1px;">⚙️ REAL-TIME 10-MIN MACRO AUTOMATIC SETTLE v3.4</p>
+                <p style="font-size: 11px; color: #38BDF8; margin: 4px 0 0 0; font-weight: bold; letter-spacing: 1px;">⚙ trespassERS REAL-TIME FIXED MACRO v3.5</p>
             </div>
             <div style="background-color: #020617; border: 1px solid #38BDF8; padding: 6px 15px; border-radius: 20px; font-size: 11px; color: #38BDF8; font-weight: bold;">
-                🎰 10포인트 슬롯 미니 오락실 상시 개방
+                📡 센터 패널 삼분할 고속 동기화 작동 중
             </div>
         </div>
     """, unsafe_allow_html=True)
 
+    # 마켓 실시간 데이터 전광판 바
     @st.cache_data(ttl=600)
     def fetch_market_10min_macro_prices():
         ticker_strings = []
@@ -252,12 +246,14 @@ else:
         st.markdown(f"""<div style="background-color: #7F1D1D; border: 2px solid #EF4444; padding: 10px 15px; border-radius: 8px; font-size: 13px; font-weight: bold; color: #FCA5A5; text-align: center; margin-bottom: 15px;">📢 [아레나 선동 무전] {global_server['loudsheet_announcement']}</div>""", unsafe_allow_html=True)
 
     # 좌우 구조 분할 레이아웃
-    main_layout, chat_layout = st.columns([2.2, 1.1], gap="medium")
+    main_layout, chat_layout = st.columns([2.3, 1.0], gap="medium")
 
     # ==================== [LEFT SIDE] 메인 아레나 플레이 구역 ====================
     with main_layout:
-        tab1, tab2 = st.tabs(["🎮 10분 토토 터미널", "🏆 실시간 아레나 서열판"])
+        # 🛠️ [요청 피드백 반영] 미니 룰렛이 드디어 메인 아레나 서열판 바로 옆 세 번째 탭으로 안착!
+        tab1, tab2, tab3 = st.tabs(["🎮 10분 토토 터미널", "🏆 실시간 아레나 서열판", "🎰 아레나 미니 룰렛"])
         
+        # 탭 1: 토토 배팅소
         with tab1:
             current_tag_medal = profile.get("active_medal", "🌱 응애 파이터")
             st.markdown(f"""
@@ -321,20 +317,76 @@ else:
                     total_votes = votes["UP"] + votes["DOWN"]
                     if total_votes > 0: st.progress(int((votes["UP"] / total_votes) * 100))
 
+        # 탭 2: 실시간 랭킹 보드
         with tab2:
             st.markdown("### 🏆 글로벌 아레나 랭크 디비전 서열")
             for user in global_server["leaderboard"]:
                 st.markdown(f"""<div style="display: flex; justify-content: space-between; align-items: center; border: 1px solid #1E293B; padding: 12px 20px; border-radius: 6px; background-color: #090D16; margin-bottom: 6px;"><div style="font-size: 13px; font-weight: 900; color: {user['color']}; width: 130px;">{user['rank']}</div><div style="font-size: 14px; font-weight: 500; color: #FFFFFF; flex: 1;">{user['name']}</div><div style="font-size: 13px; color: #22D3EE; width: 120px; text-align: center; font-weight:bold;">{user['points']}</div><div style="font-size: 13px; color: #81C995; width: 100px; text-align: right; font-weight:bold;">{user['win_rate']}</div></div>""", unsafe_allow_html=True)
 
-    # ==================== [RIGHT SIDE] 우측 고정 멀티 컴포넌트 탭 구역 ====================
+        # 🛠️ [이식 성공] '실시간 아레나 서열판' 바로 옆인 센터 3번째 탭으로 미니 룰렛 모듈 강제 강착!
+        with tab3:
+            st.markdown("### 🎰 아레나 포인트 슬롯 룰렛")
+            st.caption("10분 배팅 마감 후 남는 대기 시간을 찢을 미니 오락실! 마이너스 없이 소소한 잭팟을 사냥해 보세요.")
+            st.write("")
+            
+            today_str = datetime.date.today().strftime("%Y-%m-%d")
+            if profile.get("roulette_date", "") != today_str:
+                profile["roulette_date"] = today_str
+                profile["roulette_count"] = 0 
+                
+            current_done_count = profile.get("roulette_count", 0)
+            remained_chances = 5 - current_done_count
+            
+            c_r1, c_r2 = st.columns([1.0, 2.0])
+            with c_r1:
+                st.metric("📋 오늘 남은 슬롯 기회", f"{remained_chances} / 5 회")
+            with c_r2:
+                st.markdown("""
+                    **🎁 룰렛 당첨 기댓값 비율 (꽝 배제 복구 구조)**
+                    * 💎 **대박 잭팟 스코어:** `+100 P` (확률 10%)
+                    * 🔮 **중박 보너스 시드:** `+30 P` (확률 25%)
+                    * 🥈 **본전 방어 세이프:** `+10 P` (확률 40%)
+                    * 🪵 **낙첨 다음 기회에:** `0 P` (확률 25%)
+                """)
+            
+            st.write("")
+            roulette_disabled = remained_chances <= 0 or profile["points"] < 10
+            
+            if st.button("🎰 10 P 차감 후 즉시 룰렛 스타트", use_container_width=True, disabled=roulette_disabled):
+                profile["points"] -= 10
+                profile["roulette_count"] += 1
+                
+                spin_result = random.choices(
+                    ["JACKPOT", "BONUS", "SAVE", "BOOM"], 
+                    weights=[10, 25, 40, 25], 
+                    k=1
+                )[0]
+                
+                if spin_result == "JACKPOT":
+                    profile["points"] += 100
+                    st.success("👑 [대박!!] 슬롯 3줄 일치 잭팟 폭발! +100 P가 예수금에 충전되었습니다!")
+                elif spin_result == "BONUS":
+                    profile["points"] += 30
+                    st.info("🔮 [중박!] 시뮬레이션 보너스 획득. +30 P가 충전되었습니다.")
+                elif spin_result == "SAVE":
+                    profile["points"] += 10
+                    st.warning("🥈 [본전!] 본전 치기 성공! 차감된 10 P가 고스란히 복구되었습니다.")
+                else:
+                    st.error("🪵 [꽝!] 아쉽게도 꽝입니다! 10분 정시 리그 배팅으로 복구하세요.")
+                    
+                st.rerun()
+                
+            if remained_chances <= 0:
+                st.caption("🔒 오늘 배정된 5회의 슬롯 머신 가동이 종료되었습니다. 매일 정각에 자동 초기화됩니다.")
+
+    # ==================== [RIGHT SIDE] 우측 고정 교신방 및 명예 업적 태그 보관소 탭 구역 ====================
     with chat_layout:
-        # 🛠️ [요청 피드백] 룰렛 게임용 새로운 독자 탭 '🎰 아레나 미니 룰렛' 추가 전개 완료
-        chat_tab, shop_tab, roulette_tab = st.tabs(["💬 오픈 교신방", "🏅 명예 훈장", "🎰 미니 룰렛"])
+        chat_tab, shop_tab = st.tabs(["💬 오픈 교신방", "🏅 명예 훈장 보관소"])
         
-        # 탭 1: 채팅방
+        # 탭 1: 대화방
         with chat_tab:
             st.markdown("<p style='font-size:11px; color:#A3E635; margin:0;'>🟢 LIVE CHAT PROTOCOL ACTIVE</p>", unsafe_allow_html=True)
-            chat_container = st.container(height=360)
+            chat_container = st.container(height=380)
             with chat_container:
                 for msg in global_server["global_chat_stream"]:
                     with st.chat_message("user", avatar="⚡"):
@@ -347,7 +399,7 @@ else:
                 global_server["global_chat_stream"].append({"name": styled_name, "text": user_live_input})
                 st.rerun()
 
-        # 탭 2: 업적 전시 및 아이템 상점
+        # 탭 2: 훈장 보관소 및 아이템 숍
         with shop_tab:
             st.markdown("### 🏛️ 내 실시간 명예 업적 전시장")
             my_earned_list = get_earned_medals(profile)
@@ -376,64 +428,6 @@ else:
                 speaker_input = st.text_input("💬 전광판 선동 문구 기입", placeholder="예시: 삼전 상방에 풀배팅 땡겨라", key="txt_speaker", label_visibility="collapsed")
                 if st.button("📢 확성기 결제 및 발사 (1,000원)", use_container_width=True):
                     if speaker_input: global_server["loudsheet_announcement"] = f"파이터 [{profile['nickname']}] 의 외침: \"{speaker_input}\""; st.rerun()
-
-        # 🛠️ [탭 3 신설] 10 P 차감형 / 마이너스 없는 하루 5회 리밋 미니 룰렛 엔진 탑재 구역
-        with roulette_tab:
-            st.markdown("### 🎰 아레나 포인트 룰렛")
-            st.caption("배팅 대기 시간에 즐기는 미니 오락실! 마이너스 없이 꽝부터 최대 +100포인트를 노리세요.")
-            st.write("")
-            
-            today_str = datetime.date.today().strftime("%Y-%m-%d")
-            
-            # 유저 일일 날짜 초기화 정합성 체크 기믹
-            if profile.get("roulette_date", "") != today_str:
-                profile["roulette_date"] = today_str
-                profile["roulette_count"] = 0  # 날짜가 바뀌면 카운트 리셋
-                
-            current_done_count = profile.get("roulette_count", 0)
-            remained_chances = 5 - current_done_count
-            
-            st.metric("📋 오늘 남은 기회", f"{remained_chances} / 5 회")
-            st.markdown("""
-                **🎁 당첨 배당 명세표 (마이너스 없음)**
-                * 💎 **대박 잭팟:** `+100 P` (확률 10%)
-                * 🔮 **중박 보너스:** `+30 P` (확률 25%)
-                * 🥈 **본전 방어:** `+10 P` (확률 40%)
-                * 🪵 **낙첨 꽝:** `0 P` (확률 25%)
-            """)
-            st.write("")
-            
-            # 잔여 횟수 및 판돈 부족 여부 락 조건문 수립
-            roulette_disabled = remained_chances <= 0 or profile["points"] < 10
-            
-            if st.button("🎰 10 P 소모하고 슬롯 돌리기", use_container_width=True, disabled=roulette_disabled):
-                # 판돈 차감 및 카운트 가산
-                profile["points"] -= 10
-                profile["roulette_count"] += 1
-                
-                # 가중치 확률 기반 룰렛 볼 정산 추첨
-                spin_result = random.choices(
-                    ["JACKPOT", "BONUS", "SAVE", "BOOM"], 
-                    weights=[10, 25, 40, 25], 
-                    k=1
-                )[0]
-                
-                if spin_result == "JACKPOT":
-                    profile["points"] += 100
-                    st.success("👑 [대박!!] 슬롯 머신 격파! +100 P가 충전되었습니다!")
-                elif spin_result == "BONUS":
-                    profile["points"] += 30
-                    st.info("🔮 [중박!] 기분 좋은 보너스 포인트 수령! +30 P가 충전되었습니다.")
-                elif spin_result == "SAVE":
-                    profile["points"] += 10
-                    st.warning("🥈 [본전!] 본전 치기 방어 성공. 소모된 10 P를 그대로 환급합니다.")
-                else:
-                    st.error("🪵 [꽝!] 아쉽게도 빈손입니다. 다음 회차 슬롯을 노려보세요!")
-                    
-                st.rerun()
-                
-            if remained_chances <= 0:
-                st.caption("🔒 오늘 준비된 슬롯 기회를 모두 소진하셨습니다. 내일 다시 리셋됩니다.")
 
         # 후원 보드
         st.write("---")
