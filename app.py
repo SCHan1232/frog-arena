@@ -6,7 +6,7 @@ import yfinance as yf
 
 # 1. 청개구리 아레나 다크모드 기반 최적화 설정
 st.set_page_config(
-    page_title="🐸 청개구리 인덱스 - 개인 전적 완치 v2.0", 
+    page_title="🐸 청개구리 인덱스 - 롤 티어 아레나 v2.1", 
     page_icon="🐸",
     layout="wide"
 )
@@ -40,15 +40,19 @@ def get_global_server_data_hub():
             "SK하이닉스": {"UP": 0, "DOWN": 0},
             "삼성전자": {"UP": 0, "DOWN": 0},
             "한미반도체": {"UP": 0, "DOWN": 0},
-            "현대차": {"UP": 0, "DOWN": 0}
+            "현대차": {"UP": 0, "DOWN": 0},
+            "LG에너지솔루션": {"UP": 0, "DOWN": 0},
+            "삼성바이오로직스": {"UP": 0, "DOWN": 0},
+            "셀트리온": {"UP": 0, "DOWN": 0}
         },
         "global_chat_stream": [
-            {"name": "운영진_🐸", "text": "실시간 데이터 공유 서버 파이프라인 접속 성공. 환영합니다!"}
+            {"name": "운영진_🐸", "text": "실시간 데이터 공유 서버 파이프라인 접속 성공. 코스피 7대 대장주 라인업 가동!"}
         ],
         "leaderboard": [
-            {"rank": "🥇 1", "name": "여의도작두가리가리", "points": "12,450 P", "win_rate": "84.2%"},
-            {"rank": "🥈 2", "name": "국장개미구조대", "points": "9,800 P", "win_rate": "79.1%"},
-            {"rank": "🥉 3", "name": "내가사면폭락장", "points": "7,150 P", "win_rate": "32.5%"}
+            {"rank": "👑 CHALLENGER", "name": "여의도작두가리가리", "points": "6,450 P", "win_rate": "84.2%", "color": "#FBBF24"},
+            {"rank": "🔮 MASTER", "name": "국장개미구조대", "points": "4,100 P", "win_rate": "79.1%", "color": "#C084FC"},
+            {"rank": "💎 DIAMOND", "name": "단타는예술이다", "points": "2,850 P", "win_rate": "71.4%", "color": "#60A5FA"},
+            {"rank": "🪵 IRON", "name": "내가사면폭락장", "points": "350 P", "win_rate": "12.5%", "color": "#94A3B8"}
         ]
     }
 
@@ -57,14 +61,7 @@ global_server = get_global_server_data_hub()
 if "user_login_data" not in st.session_state:
     st.session_state["user_login_data"] = None
 
-if "chat_messages" not in st.session_state:
-    st.session_state["chat_messages"] = [
-        {"role": "user", "name": "여의도작두", "text": "와 이제 5분 지나면 칼같이 투표 잠기네 ㅋㅋ 타이밍 싸움 오진다"}, 
-        {"role": "user", "name": "반대로만사는대리", "text": "투표수 0에서 내가 누르니까 진짜 1 올라가네! 이제 진짜 투표인 듯"},
-        {"role": "user", "name": "국장구조대", "text": "매 정시마다 판 새로 열리니까 포인트 복구하기 편해서 좋네요"}
-    ]
-
-# 🛠️ 초기 세션 생성부 (신규 유저는 무조건 0전 0승 1000P로 엄격히 규정)
+# 유저 실시간 데이터 프로필
 if "my_arena_profile" not in st.session_state:
     st.session_state["my_arena_profile"] = {
         "voted_hours": [], 
@@ -72,8 +69,27 @@ if "my_arena_profile" not in st.session_state:
         "points": 1000,       
         "total_matches": 0,   
         "win_matches": 0,     
-        "title": "🪵 침수된 나무토막"
+        "title": "🥈 SILVER"
     }
+
+# 🛠️ 포인트 기준 롤 티어 및 색상 변동 함수 수립
+def calculate_lol_tier(pts):
+    if pts >= 5000:
+        return "👑 CHALLENGER", "#FBBF24"
+    elif pts >= 3000:
+        return "🔮 MASTER", "#C084FC"
+    elif pts >= 2000:
+        return "💎 DIAMOND", "#60A5FA"
+    elif pts >= 1500:
+        return "✨ PLATINUM", "#34D399"
+    elif pts >= 1200:
+        return "🥇 GOLD", "#F59E0B"
+    elif pts >= 1000:
+        return "🥈 SILVER", "#94A3B8"
+    elif pts >= 500:
+        return "🥉 BRONZE", "#B45309"
+    else:
+        return "🪵 IRON", "#475569"
 
 # 🔴 AREA A: 부장님 방어막
 if is_boss_mode:
@@ -96,7 +112,6 @@ elif st.session_state["user_login_data"] is None:
             if not login_nick or len(login_birth) < 8:
                 st.error("🚨 닉네임과 생년월일 8자리를 정확히 기입하셔야 전장 셔터가 열립니다!")
             else:
-                # 🛠️ [버그 완치 핵심 솔루션] 로그인 버튼을 누르는 순간, 이전 캐시를 찢어버리고 0전 0승 프로필을 강제 재주입
                 st.session_state["user_login_data"] = {"nickname": login_nick, "birth": login_birth}
                 st.session_state["my_arena_profile"] = {
                     "voted_hours": [],
@@ -104,18 +119,22 @@ elif st.session_state["user_login_data"] is None:
                     "points": 1000,
                     "total_matches": 0,
                     "win_matches": 0,
-                    "title": "🌱 응애 파이터"
+                    "title": "🥈 SILVER"
                 }
-                st.toast(f"🎉 반갑습니다, {login_nick} 파이터님! 전적 0% 청정 계정 활성화.", icon="🐸")
+                st.toast(f"🎉 반갑습니다, {login_nick} 파이터님! 실시간 데이터 월드 진입.", icon="🐸")
                 st.rerun()
 
 # 정식 청개구리 아레나 가동
 else:
+    # 🛠️ 거래대금 최상위 코스피 대장주 3종 전격 추가완료 (총 7종 체제)
     STOCK_TICKER_MAP = {
         "SK하이닉스 (000660.KS)": "000660.KS",
         "삼성전자 (005930.KS)": "005930.KS",
         "한미반도체 (042700.KS)": "042700.KS",
-        "현대차 (005380.KS)": "005380.KS"
+        "현대차 (005380.KS)": "005380.KS",
+        "LG에너지솔루션 (373220.KS)": "373220.KS",
+        "삼성바이오로직스 (207940.KS)": "207940.KS",
+        "셀트리온 (068270.KS)": "068270.KS"
     }
 
     st.markdown("""
@@ -124,7 +143,7 @@ else:
                 🐸 청개구리 인덱스 아레나
             </h1>
             <span style="font-size: 12px; color: #AAADB0; margin-left: 15px; font-weight: normal; vertical-align: bottom;">
-                ⚖️ 실시간 정배/역배 배당률 정산 모드 v2.0
+                ⚖️ 코스피 7대 대장주 롤 티어 아레나 모드 v2.1
             </span>
         </div>
     """, unsafe_allow_html=True)
@@ -165,11 +184,14 @@ else:
     current_hour = kst_now.hour
     current_minute = kst_now.minute
     
-    # 1시간 단위 제어 (0분~5분 투표, 이후 잠금)
     is_voting_window = 0 <= current_minute < 5
     target_prediction_hour = (current_hour + 1) % 24
 
+    # 내 실시간 포인트 기반 롤 티어 판별 가동
     profile = st.session_state["my_arena_profile"]
+    my_tier_title, my_tier_color = calculate_lol_tier(profile["points"])
+    profile["title"] = my_tier_title
+    
     calc_win_rate = (profile["win_matches"] / profile["total_matches"] * 100) if profile["total_matches"] > 0 else 0.0
 
     # 레이아웃 분할
@@ -177,7 +199,7 @@ else:
 
     # ==================== [LEFT SIDE] 메인 아레나 플레이 구역 ====================
     with main_layout:
-        tab1, tab2 = st.tabs(["🎮 1시간 타임어택 배팅소", "🏆 실시간 랭킹 서열"])
+        tab1, tab2 = st.tabs(["🎮 1시간 타임어택 배팅소", "🏆 실시간 티어 서열 보드"])
         
         # TAB 1: 배팅소 구역
         with tab1:
@@ -185,6 +207,7 @@ else:
             
             c_p1, c_p2, c_p3 = st.columns(3)
             c_p1.metric("👤 파이터 닉네임", profile["nickname"])
+            st.markdown(f"<div style='padding:5px;'><span style='font-size:13px; color:#AAADB0;'>🏅 현재 배팅 계급 티어</span><br><b style='font-size:20px; color:{my_tier_color};'>{my_tier_title}</b></div>", unsafe_allow_html=True)
             c_p2.metric("💰 내 아레나 포인트", f"{profile['points']:,} P")
             c_p3.metric("📊 현재 리얼 승률", f"{calc_win_rate:.1f} %", f"전적: {profile['win_matches']}승 {profile['total_matches']-profile['win_matches']}패")
 
@@ -197,17 +220,16 @@ else:
             
             st.write("")
             st.markdown(f"#### 🥊 [ROUND] {current_hour}:00 기준 시세 ➡️ {target_prediction_hour}:00 종가 예측")
-            st.caption("매시 0분~5분 사이에만 아래 투표가 활성화되며, 1회 배팅 시 100 P가 소모됩니다.")
+            st.caption("매시 0분~5분 사이에만 투표 가능하며, 1회 배팅 시 100 P가 차감 소모됩니다.")
 
-            # 종목 배팅 리스트 출력
-            for stock_name in ["SK하이닉스", "삼성전자", "한미반도체", "현대차"]:
+            # 7대 우량주 배팅 카드 루프 출력
+            for stock_name in ["SK하이닉스", "삼성전자", "한미반도체", "현대차", "LG에너지솔루션", "삼성바이오로직스", "셀트리온"]:
                 live_p = actual_live_prices.get(stock_name, 0)
                 votes = global_server["current_match_votes"][stock_name]
                 
                 up_cnt = votes["UP"]
                 down_cnt = votes["DOWN"]
                 
-                # 실시간 유저 비율 투표 배당 책정
                 if up_cnt == down_cnt:
                     up_dividend_text = "1.5배 (동배)"
                     down_dividend_text = "1.5배 (동배)"
@@ -228,10 +250,8 @@ else:
                     has_voted_this_hour = f"{current_hour}_{stock_name}" in profile["voted_hours"]
                     button_disabled = (not is_voting_window) or has_voted_this_hour or profile["points"] < 100
 
-                    # ▲ 상승 배팅 버튼 클릭 핸들러
                     with c2:
                         if st.button(f"▲ 상승 ({up_dividend_text})", key=f"am_up_{stock_name}", use_container_width=True, disabled=button_disabled):
-                            # 포인트 차감 검증용 선처리
                             profile["points"] -= 100
                             is_up_jeong = up_cnt >= down_cnt if (up_cnt != down_cnt) else None
                             
@@ -239,24 +259,16 @@ else:
                             profile["voted_hours"].append(f"{current_hour}_{stock_name}")
                             profile["total_matches"] += 1
                             
-                            # 정산 시뮬레이션
                             if random.choice([True, False]): 
                                 profile["win_matches"] += 1
-                                if is_up_jeong is True:
-                                    reward = 130
-                                    st.toast(f"🎯 정배 적중! 1.3배 획득 (+130 P)", icon="🚀")
-                                elif is_up_jeong is False:
-                                    reward = 170
-                                    st.toast(f"🔥 역배 잭팟! 1.7배 획득 (+170 P)", icon="👑")
-                                else:
-                                    reward = 150
-                                    st.toast(f"🎯 동배 적중! 1.5배 획득 (+150 P)", icon="🚀")
+                                if is_up_jeong is True: reward = 130; st.toast("🎯 정배 예측 적중! 1.3배 적용 (+130 P)", icon="🚀")
+                                elif is_up_jeong is False: reward = 170; st.toast("🔥 역배 대박 적중! 1.7배 적용 (+170 P)", icon="👑")
+                                else: reward = 150; st.toast("🎯 동배 적중! 1.5배 적용 (+150 P)", icon="🚀")
                                 profile["points"] += reward
                             else: 
                                 st.toast("📉 예측 실패! 배팅금 100 P가 소멸되었습니다.", icon="💥")
                             st.rerun()
                             
-                    # ▼ 하락 배팅 버튼 클릭 핸들러
                     with c3:
                         if st.button(f"▼ 하락 ({down_dividend_text})", key=f"am_down_{stock_name}", use_container_width=True, disabled=button_disabled):
                             profile["points"] -= 100
@@ -268,15 +280,9 @@ else:
                             
                             if random.choice([True, False]):
                                 profile["win_matches"] += 1
-                                if is_down_jeong is True:
-                                    reward = 130
-                                    st.toast(f"🎯 정배 적중! 1.3배 획득 (+130 P)", icon="🚀")
-                                elif is_down_jeong is False:
-                                    reward = 170
-                                    st.toast(f"🔥 역배 잭팟! 1.7배 획득 (+170 P)", icon="👑")
-                                else:
-                                    reward = 150
-                                    st.toast(f"🎯 동배 적중! 1.5배 획득 (+150 P)", icon="🚀")
+                                if is_down_jeong is True: reward = 130; st.toast("🎯 정배 예측 적중! 1.3배 적용 (+130 P)", icon="🚀")
+                                elif is_down_jeong is False: reward = 170; st.toast("🔥 역배 대박 적중! 1.7배 적용 (+170 P)", icon="👑")
+                                else: reward = 150; st.toast("🎯 동배 적중! 1.5배 적용 (+150 P)", icon="🚀")
                                 profile["points"] += reward
                             else:
                                 st.toast("📉 예측 실패! 배팅금 100 P가 소멸되었습니다.", icon="💥")
@@ -291,29 +297,30 @@ else:
                         st.progress(50)
                         st.caption("📊 현재 아레나 대기 중... (양방향 1.5배 동배당 상태입니다)")
 
-        # TAB 2: 글로벌 랭킹 서열
+        # TAB 2: 글로벌 랭킹 서열 (LoL 티어 매트릭스 디자인 반영)
         with tab2:
-            st.markdown("### 🏆 글로벌 아레나 포인트/승률 통합 랭킹")
+            st.markdown("### 🏆 글로벌 아레나 실시간 티어 서열 보드")
+            st.caption("배팅소 포인트와 실제 승률 전적에 맞춰 롤 레이팅 방식의 8개 티어가 실시간 배치됩니다.")
             st.write("")
             
-            st.markdown("##### 👤 나의 실시간 파이터 등급")
+            st.markdown("##### 👤 나의 실시간 파이터 계급 및 스펙")
             st.markdown(f"""
-                <div style="display: flex; justify-content: space-between; align-items: center; border: 2px solid #A3E635; padding: 12px 20px; border-radius: 8px; background-color: #1F261A; margin-bottom: 20px;">
-                    <div style="font-size: 14px; font-weight: bold; color: #A3E635; width: 80px;">MY RANK</div>
+                <div style="display: flex; justify-content: space-between; align-items: center; border: 2px solid {my_tier_color}; padding: 15px 20px; border-radius: 8px; background-color: #12161A; margin-bottom: 25px;">
+                    <div style="font-size: 15px; font-weight: 900; color: {my_tier_color}; width: 140px; letter-spacing: 1px;">{my_tier_title}</div>
                     <div style="font-size: 15px; font-weight: bold; color: #FFFFFF; flex: 1;">{profile['nickname']} (나)</div>
-                    <div style="font-size: 13px; color: #AAADB0; width: 140px; text-align: center;">포인트: {profile['points']:,} P</div>
-                    <div style="font-size: 15px; font-weight: bold; color: #81C995; width: 80px; text-align: right;">{calc_win_rate:.1f}%</div>
+                    <div style="font-size: 13px; color: #22D3EE; width: 140px; text-align: center; font-weight: bold;">포인트: {profile['points']:,} P</div>
+                    <div style="font-size: 15px; font-weight: bold; color: #81C995; width: 120px; text-align: right;">실시간 승률: {calc_win_rate:.1f}%</div>
                 </div>
             """, unsafe_allow_html=True)
 
-            st.markdown("##### 🏛️ 아레나 명예의 전당 (누적 탑 랭커)")
+            st.markdown("##### 🏛️ 아레나 통합 랭커 서열단 (티어 연동)")
             for user in global_server["leaderboard"]:
                 st.markdown(f"""
                     <div style="display: flex; justify-content: space-between; align-items: center; border: 1px solid #3C4043; padding: 12px 20px; border-radius: 8px; background-color: #1A1D20; margin-bottom: 8px;">
-                        <div style="font-size: 15px; font-weight: bold; color: #A3E635; width: 80px;">{user['rank']}</div>
+                        <div style="font-size: 13px; font-weight: 900; color: {user['color']}; width: 140px; letter-spacing: 0.5px;">{user['rank']}</div>
                         <div style="font-size: 14px; font-weight: 500; color: #FFFFFF; flex: 1;">{user['name']}</div>
                         <div style="font-size: 13px; color: #22D3EE; width: 140px; text-align: center;">{user['points']}</div>
-                        <div style="font-size: 15px; font-weight: bold; color: #81C995; width: 80px; text-align: right;">{user['win_rate']}</div>
+                        <div style="font-size: 14px; font-weight: bold; color: #81C995; width: 120px; text-align: right;">{user['win_rate']}</div>
                     </div>
                 """, unsafe_allow_html=True)
 
@@ -328,7 +335,8 @@ else:
             real_active_users = 1
             
         st.markdown(f"<h3 style='margin-top:23px; font-size:16px;'>💬 아레나 오픈방 <span style='font-size:12px; color:#A3E635; font-weight:normal;'>🟢 실제 {real_active_users}명 참여 중</span></h3>", unsafe_allow_html=True)
-        
+        st.markdown(f"<span style='font-size:12px; color:{my_tier_color}; font-weight:bold;'>티어: {my_tier_title}</span>", unsafe_allow_html=True)
+
         chat_container = st.container(height=350)
         with chat_container:
             for msg in global_server["global_chat_stream"]:
@@ -338,7 +346,7 @@ else:
 
         if user_live_input := st.chat_input("아레나 오픈방에 실시간 한마디..."):
             global_server["global_chat_stream"].append({
-                "name": profile["nickname"], 
+                "name": f"[{my_tier_title.split(' ')[0]}] {profile['nickname']}", 
                 "text": user_live_input
             })
             st.rerun()
@@ -349,7 +357,7 @@ else:
         st.markdown("""
             <div style="background-color: #1F1625; border: 1px dashed #FF8DA1; padding: 12px; border-radius: 8px; margin-bottom: 8px; text-align: center;">
                 <p style="margin: 0; font-size: 11px; color: #FFB3C1; line-height: 1.4;">
-                    🐸: "1시간마다 정밀 클럭으로 API 데이터를 땡겨오느라 개구리 대장의 올챙이국수 시드가 실시간으로 마르고 있어요... 1,000원만 보태주시면 더 유용한 지표로 보답할게요!"
+                    🐸: "1시간마다 7대 대장주 API 트래픽을 당겨오느라 CPU 올챙이국수 시드가 마르고 있어요... 1,000원만 보태주시면 더 유용한 지표로 보답할게요!"
                 </p>
             </div>
         """, unsafe_allow_html=True)
@@ -359,7 +367,7 @@ else:
         st.write("---")
         st.markdown("<h4 style='font-size:13px; color:#AAADB0;'>🤫 익명 종목 추가 건의함</h4>", unsafe_allow_html=True)
         with st.form("suggest_form", clear_on_submit=True):
-            s_input = st.text_input("📝 건의할 종목명/기능", placeholder="예: 코스닥 레버리지 추가요망", label_visibility="collapsed")
+            s_input = st.text_input("📝 건의할 종목명/기능", placeholder="예: 코스닥 3배 레버리지 추가요망", label_visibility="collapsed")
             s_submit = st.form_submit_button("🔒 개발자 비밀 전송")
             if s_submit and s_input:
                 cur_t = datetime.datetime.now().strftime("%H:%M")
