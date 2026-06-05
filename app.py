@@ -6,7 +6,7 @@ import yfinance as yf
 
 # 1. 사이버펑크 아레나 초호화 다크 테마 설정
 st.set_page_config(
-    page_title="⚡ 청개구리 인덱스 - 10분 아레나 v2.3", 
+    page_title="⚡ 청개구리 인덱스 - 10분 매크로 리그 v2.5", 
     page_icon="⚡",
     layout="wide"
 )
@@ -46,7 +46,7 @@ def get_global_server_data_hub():
             "셀트리온": {"UP": 0, "DOWN": 0}
         },
         "global_chat_stream": [
-            {"name": "[CHALLENGER] 운영진_🐸", "text": "⚡ 10분 스피드 아레나 가동! 각 라운드 초반 1분간의 초고속 배팅 페이즈가 열립니다."}
+            {"name": "[CHALLENGER] 운영진_🐸", "text": "⚡ 24시간 정시 매크로 시스템 가동. 한국 표준시 시계에 맞춰 10분마다 판이 리셋됩니다."}
         ],
         "leaderboard": [
             {"rank": "👑 CHALLENGER", "name": "여의도작두가리가리", "points": "6,450 P", "win_rate": "84.2%", "color": "#FBBF24"},
@@ -97,7 +97,7 @@ elif st.session_state["user_login_data"] is None:
             <h1 style="color: #A3E635; font-size: 42px; font-weight: 900; letter-spacing: -2px; text-shadow: 0 0 15px rgba(163,230,53,0.6); margin-bottom: 5px;">
                 ⚡ FROG ARENA TERMINAL
             </h1>
-            <p style="color: #22D3EE; font-size: 13px; font-weight: bold; letter-spacing: 2px;">10분 라이브 무한 서열 아레나에 로그인하십시오.</p>
+            <p style="color: #22D3EE; font-size: 13px; font-weight: bold; letter-spacing: 2px;">KST 표준시 동기화 매크로 아레나에 로그인하십시오.</p>
         </div>
     """, unsafe_allow_html=True)
     
@@ -119,10 +119,10 @@ elif st.session_state["user_login_data"] is None:
                     "win_matches": 0,
                     "title": "🥈 SILVER"
                 }
-                st.toast(f"⚡ 무한 10분 아레나 접속 완료. 파이터 {login_nick} 대기.", icon="⚡")
+                st.toast(f"⚡ 접속 완료. KST 정시 매크로 동기화 개시.", icon="⚡")
                 st.rerun()
 
-# 정식 청개구리 아레나 가동 (10분 주기 시스템)
+# 정식 청개구리 아레나 가동
 else:
     STOCK_TICKER_MAP = {
         "SK하이닉스 (000660.KS)": "000660.KS",
@@ -141,17 +141,17 @@ else:
                 <h1 style="color: #A3E635; font-size: 36px; font-weight: 900; margin: 0; letter-spacing: -2px; text-shadow: 0 0 10px rgba(163,230,53,0.4);">
                     ⚡ FROG INDEX ARENA
                 </h1>
-                <p style="font-size: 11px; color: #38BDF8; margin: 4px 0 0 0; font-weight: bold; letter-spacing: 1px;">⏱️ 10-MIN INFINITE RELAY TOURNAMENT MODE v2.3</p>
+                <p style="font-size: 11px; color: #38BDF8; margin: 4px 0 0 0; font-weight: bold; letter-spacing: 1px;">⏱️ KST 10-MIN FIXED MACRO TOURNAMENT v2.5</p>
             </div>
             <div style="background-color: #020617; border: 1px solid #38BDF8; padding: 6px 15px; border-radius: 20px; font-size: 11px; color: #38BDF8; font-weight: bold;">
-                ⏳ 10분 단위 자동 주가 갱신 중
+                📡 리얼타임 데이터 교신 중
             </div>
         </div>
     """, unsafe_allow_html=True)
 
-    # 🛠️ [요청 피드백] 야후파이낸스 데이터를 10분(600초) 단위로 정밀 캐싱 동기화
+    # 🛠️ [3번 피드백 완치] 야후 파이낸스 실시간 현재 주가를 10분(600초) 캐시 타이머로 강제 연동
     @st.cache_data(ttl=600)
-    def fetch_market_10min_prices():
+    def fetch_market_10min_macro_prices():
         ticker_strings = []
         live_prices_dict = {}
         for name, tk in STOCK_TICKER_MAP.items():
@@ -170,7 +170,7 @@ else:
                 ticker_strings.append(f"<span style='color: #EF4444;'>{clean_name} 오류</span>")
         return " &nbsp;&nbsp; 🔴 &nbsp;&nbsp; ".join(ticker_strings), live_prices_dict
 
-    live_ticker_html, actual_live_prices = fetch_market_10min_prices()
+    live_ticker_html, actual_live_prices = fetch_market_10min_macro_prices()
     
     st.markdown(f"""
         <div style="background-color: #020617; padding: 8px 15px; border-radius: 6px; border: 1px solid #1E293B; font-size: 11px; margin-bottom: 20px; white-space: nowrap; overflow-x: auto;">
@@ -178,25 +178,41 @@ else:
         </div>
     """, unsafe_allow_html=True)
 
-    # 시차 교정 (한국 표준시 동기화) 및 10분 통제기 코어 가동
+    # 🛠️ [중앙 통제식 정시 매크로 엔진 조립]
     server_utc = datetime.datetime.utcnow()
     kst_now = server_utc + datetime.timedelta(hours=9)
     current_hour = kst_now.hour
     current_minute = kst_now.minute
     current_second = kst_now.second
     
-    # 🛠️ [요청 피드백] 10분 주기의 '초반 1분 미만' 일 때만 오픈 (예: 10분~11분, 20분~21분)
-    minute_in_block = current_minute % 10
-    is_voting_window = (minute_in_block == 0) # 0분층에 해당하는 60초간만 참(True)
+    # 내 현재 분(Minute)이 10분 단위 블록 중 몇 번째 분인지 정밀 연산
+    # 예: 23분 ➡️ block_start_min = 20, minute_offset = 3
+    block_start_min = (current_minute // 10) * 10
+    next_block_min = block_start_min + 10
+    minute_offset = current_minute % 10
     
-    # 정산 기준이 될 다음 10분 정시 타겟 이름표 조립
-    next_block_minute = ((current_minute // 10) + 1) * 10
-    if next_block_minute >= 60:
+    # 🛠️ [핵심 조건] 사용자가 건드릴 수 없는 매크로 스케줄러: 오직 각 블록의 '첫 1분 미만(0분째)' 일 때만 배팅 가동!
+    # 예: 9시 20분 00초 ~ 20분 59초 ➡️ OPEN / 21분 00초 ➡️ LOCKED
+    is_voting_window = (minute_offset == 0)
+
+    # 정산 타겟 레이블 문자열 연동
+    if next_block_min >= 60:
         target_display_time = f"{(current_hour + 1) % 24}:00"
-        match_id_string = f"{current_hour}_50_{stock_name}" if minute_in_block == 0 else f"{(current_hour + 1) % 24}_00"
     else:
-        target_display_time = f"{current_hour}:{next_block_minute:02d}"
-        match_id_string = f"{current_hour}_{(current_minute // 10) * 10:02d}"
+        target_display_time = f"{current_hour}:{next_block_min:02d}"
+    
+    # 서버 메모리에 동기화할 이번 회차 고유 매크로 ID 배정
+    macro_match_id = f"{kst_now.strftime('%Y%m%d')}_{current_hour}_{block_start_min}"
+
+    # 10분 마감 순간 투표 집계 초기화 매크로 (다음 턴 진입 시 글로벌 캐시 자동 폭파 트리거)
+    if "last_processed_id" not in st.session_state:
+        st.session_state["last_processed_id"] = macro_match_id
+
+    if st.session_state["last_processed_id"] != macro_match_id:
+        # 회차가 강제로 전환되면 이전 유저 투표 카운트를 전 국민 공통으로 자동 리셋 리셋
+        for s_n in global_server["current_match_votes"]:
+            global_server["current_match_votes"][s_n] = {"UP": 0, "DOWN": 0}
+        st.session_state["last_processed_id"] = macro_match_id
 
     # 내 포인트 기반 실시간 롤 티어 랭크 산출
     profile = st.session_state["my_arena_profile"]
@@ -209,7 +225,7 @@ else:
 
     # ==================== [LEFT SIDE] 메인 아레나 플레이 구역 ====================
     with main_layout:
-        tab1, tab2 = st.tabs(["🎮 10분 초고속 터미널", "🏆 실시간 아레나 서열판"])
+        tab1, tab2 = st.tabs(["🎮 10분 매크로 터미널", "🏆 실시간 아레나 서열판"])
         
         # TAB 1: 배팅 터미널 구역
         with tab1:
@@ -217,12 +233,12 @@ else:
             st.markdown(f"""
                 <div style="background: linear-gradient(135deg, #0B0F19 0%, #030712 100%); border: 2px solid {my_tier_color}; box-shadow: 0 0 15px {my_tier_color}40; padding: 20px; border-radius: 10px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <span style="font-size: 11px; color: #64748B; font-weight: bold; letter-spacing: 1px;">👤 ARENA PILOT PROFILE</span>
+                        <span style="font-size: 11px; color: #64748B; font-weight: bold; letter-spacing: 1px;">👤 SECURITY PILOT PROFILE</span>
                         <h3 style="margin: 3px 0 0 0; color: #FFFFFF; font-size: 22px; font-weight: 800;">{profile['nickname']}</h3>
                         <span style="display:inline-block; background-color:{my_tier_color}15; color:{my_tier_color}; padding:2px 10px; border-radius:4px; font-size:11px; font-weight:900; border:1px solid {my_tier_color}50; margin-top:5px;">{my_tier_title}</span>
                     </div>
                     <div style="text-align: right;">
-                        <span style="font-size: 11px; color: #64748B; font-weight: bold;">💰 MY CREDIT BALANCE</span>
+                        <span style="font-size: 11px; color: #64748B; font-weight: bold;">💰 CREDIT SCORE</span>
                         <h2 style="margin: 0; color: #22D3EE; font-size: 24px; font-weight: 900; text-shadow: 0 0 8px rgba(34,211,238,0.3);">{profile['points']:,} P</h2>
                         <span style="font-size:12px; color:#81C995; font-weight:bold;">승률: {calc_win_rate:.1f}% ({profile['win_matches']}승/{profile['total_matches']}전)</span>
                     </div>
@@ -231,24 +247,24 @@ else:
 
             current_now_str = kst_now.strftime('%H:%M:%S')
             
-            # 🛠️ [요청 피드백] 1분 타임어택 오픈 전광판 시각화 조립
+            # 🤖 매크로 시간 차단 인터페이스 가시화
             if is_voting_window:
                 st.markdown(f"""
                     <div style="background-color: #064E3B; border: 1px solid #10B981; padding: 12px 15px; border-radius: 6px; color: #34D399; font-weight: bold; font-size: 13.5px; margin-bottom: 20px; box-shadow: 0 0 12px rgba(16,185,129,0.3);">
-                        🔓 [OPEN] 초고속 10분 아레나 매치 활성화! (마감까지 {60 - current_second}초 남음! 지금 베팅하세요!)
+                        🔓 [REALTIME OPEN] {block_start_min:02d}분 스케줄 배팅 가동 중! (타임어택 마감까지 단 {60 - current_second}초 남음!)
                     </div>
                 """, unsafe_allow_html=True)
             else:
                 st.markdown(f"""
                     <div style="background-color: #7F1D1D; border: 1px solid #EF4444; padding: 12px 15px; border-radius: 6px; color: #FCA5A5; font-weight: bold; font-size: 13.5px; margin-bottom: 20px;">
-                        🔒 [LOCKED] 초반 1분 배팅 시간이 마감되었습니다. (현재 매치 정산 시각: {target_display_time} 대기 중)
+                        🔒 [MACRO LOCKED] 이번 회차 초반 1분 배팅 링크가 마감되었습니다. (현재 {target_display_time} 리그 진행 추적 중 | {current_minute % 10}분 경과)
                     </div>
                 """, unsafe_allow_html=True)
             
-            st.markdown(f"##### ⚔️ 10분 레이스 목표: 현재 시세 ➡️ {target_display_time} 예측 종료")
-            st.caption("※ 각 10분 주기 진입 직후 딱 1분(60초)간만 스피드 베팅을 허용합니다.")
+            st.markdown(f"##### ⚔️ 정시 매크로 리그: {block_start_min:02d}분 시세 ➡️ {target_display_time} 마감 예측")
+            st.caption(f"현재 동기화된 회차 코드: `FROG_MATCH_{macro_match_id}` (사용자 수동 조작 불가 모드)")
             
-            # 7대 대장주 베팅 제어 구문 루프
+            # 7대 대장주 배팅 카드 루프 출력
             for stock_name in ["SK하이닉스", "삼성전자", "한미반도체", "현대차", "LG에너지솔루션", "삼성바이오로직스", "셀트리온"]:
                 live_p = actual_live_prices.get(stock_name, 0)
                 votes = global_server["current_match_votes"][stock_name]
@@ -266,8 +282,8 @@ else:
                     up_div = "1.70x (역배)"
                     down_div = "1.30x (정배)"
 
-                # 매치 고유 식별코드 생성 (10분 주기에 맞춘 유니크키)
-                unique_match_key = f"{match_id_string}_{stock_name}"
+                # 유니크 매크로 배팅 이력 키 생성 (중복 배팅 방지용)
+                unique_macro_user_vote_key = f"{macro_match_id}_{stock_name}"
 
                 with st.container():
                     st.markdown(f"""
@@ -275,15 +291,15 @@ else:
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <div>
                                     <span style="font-size: 16px; font-weight: 800; color: #FFFFFF;">{stock_name}</span>
-                                    <span style="font-size: 11px; color: #64748B; margin-left: 8px;">기준가: {int(live_p):,}원</span>
+                                    <span style="font-size: 11px; color: #64748B; margin-left: 8px;">정각 API 기준가: {int(live_p):,}원</span>
                                 </div>
-                                <span style="font-size: 11px; color: #22D3EE; font-weight: bold;">⚡ 10-MIN MATCH</span>
+                                <span style="font-size: 11px; color: #22D3EE; font-weight: bold;">📊 {block_start_min:02d}M MACRO</span>
                             </div>
                         </div>
                     """, unsafe_allow_html=True)
                     
-                    has_voted_this_block = unique_match_key in profile["voted_hours"]
-                    button_disabled = (not is_voting_window) or has_voted_this_block or profile["points"] < 100
+                    has_voted_this_macro_turn = unique_macro_user_vote_key in profile["voted_hours"]
+                    button_disabled = (not is_voting_window) or has_voted_this_macro_turn or profile["points"] < 100
 
                     c1, c2 = st.columns(2)
                     with c1:
@@ -291,16 +307,16 @@ else:
                             profile["points"] -= 100
                             is_up_jeong = up_cnt >= down_cnt if (up_cnt != down_cnt) else None
                             global_server["current_match_votes"][stock_name]["UP"] += 1
-                            profile["voted_hours"].append(unique_match_key)
+                            profile["voted_hours"].append(unique_macro_user_vote_key)
                             profile["total_matches"] += 1
                             
                             if random.choice([True, False]): 
                                 profile["win_matches"] += 1
                                 reward = 130 if is_up_jeong is True else (170 if is_up_jeong is False else 150)
                                 profile["points"] += reward
-                                st.toast(f"🎯 10분 매치 즉시 적중! {reward} P 획득 완료.", icon="🚀")
+                                st.toast(f"🎯 정시 리그 적중 성공! 배당률 정산되어 {reward} P 지급 완료.", icon="🚀")
                             else: 
-                                st.toast("📉 예측 실패! 시드가 청산되었습니다.", icon="💥")
+                                st.toast("📉 예측 실패! 배팅 포인트 100 P가 차감 소멸되었습니다.", icon="💥")
                             st.rerun()
                             
                     with c2:
@@ -308,30 +324,30 @@ else:
                             profile["points"] -= 100
                             is_down_jeong = down_cnt >= up_cnt if (up_cnt != down_cnt) else None
                             global_server["current_match_votes"][stock_name]["DOWN"] += 1
-                            profile["voted_hours"].append(unique_match_key)
+                            profile["voted_hours"].append(unique_macro_user_vote_key)
                             profile["total_matches"] += 1
                             
                             if random.choice([True, False]):
                                 profile["win_matches"] += 1
                                 reward = 130 if is_down_jeong is True else (170 if is_down_jeong is False else 150)
                                 profile["points"] += reward
-                                st.toast(f"🎯 10분 매치 즉시 적중! {reward} P 획득 완료.", icon="🚀")
+                                st.toast(f"🎯 정시 리그 적중 성공! 배당률 정산되어 {reward} P 지급 완료.", icon="🚀")
                             else:
-                                st.toast("📉 예측 실패! 시드가 청산되었습니다.", icon="💥")
+                                st.toast("📉 예측 실패! 배팅 포인트 100 P가 차감 소멸되었습니다.", icon="💥")
                             st.rerun()
                     
                     total_votes = votes["UP"] + votes["DOWN"]
                     if total_votes > 0:
                         up_per = (votes["UP"] / total_votes) * 100
                         st.progress(int(up_per))
-                        st.markdown(f"<p style='font-size:11px; color:#94A3B8; margin-top:2px; margin-bottom:15px;'>📊 베팅 비율: 상승 ▲ {up_per:.1f}% | 하락 ▼ {100-up_per:.1f}% (현 회차 참여 {total_votes}명)</p>", unsafe_allow_html=True)
+                        st.markdown(f"<p style='font-size:11px; color:#94A3B8; margin-top:2px; margin-bottom:15px;'>📊 전 국민 실시간 투표 비율: 상승 ▲ {up_per:.1f}% | 하락 ▼ {100-up_per:.1f}% (총 {total_votes}명 배팅 완료)</p>", unsafe_allow_html=True)
                     else:
-                        st.markdown("<p style='font-size:11px; color:#475569; margin-top:2px; margin-bottom:15px;'>📊 현재 배팅 균형 상태 (1.50x 동배당 적용)</p>", unsafe_allow_html=True)
+                        st.markdown("<p style='font-size:11px; color:#475569; margin-top:2px; margin-bottom:15px;'>📊 현재 배팅 순수 대기 중 (1.50x 동배당 청정 구역)</p>", unsafe_allow_html=True)
 
         # TAB 2: 글로벌 롤 티어 서열 보드
         with tab2:
             st.markdown("### 🏆 글로벌 아레나 랭크 디비전 서열")
-            st.caption("스코어 스펙 기준 롤 방식 8대 티어가 하이 테크놀로지 보드에 실시간 정렬됩니다.")
+            st.caption("배팅 포인트 스코어 기준 롤 방식 8대 티어가 하이 테크놀로지 보드에 실시간 정렬됩니다.")
             st.write("")
             
             st.markdown(f"""
@@ -364,7 +380,7 @@ else:
             real_active_users = 1
             
         st.markdown(f"<h3 style='margin-top:23px; font-size:15px; color:#FFFFFF;'>💬 실시간 교신 넷 <span style='font-size:11px; color:#A3E635; font-weight:normal;'>🟢 LIVE: {real_active_users}</span></h3>", unsafe_allow_html=True)
-        st.markdown(f"<div style='background-color:#0F172A; padding:4px 10px; border-radius:4px; font-size:11px; border:1px solid {my_tier_color}50; color:{my_tier_color}; font-weight:900; text-align:center;'>MY RANK: {my_tier_title}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='background-color:#0F172A; padding:4px 10px; border-radius:4px; font-size:11px; border:1px solid {my_tier_color}50; color:{my_tier_color}; font-weight:900; text-align:center;'>MY DIVISION: {my_tier_title}</div>", unsafe_allow_html=True)
 
         chat_container = st.container(height=360)
         with chat_container:
@@ -389,7 +405,7 @@ else:
         st.markdown("""
             <div style="background-color: #1E1B4B; border: 1px dashed #FF8DA1; padding: 12px; border-radius: 6px; margin-bottom: 8px; text-align: center;">
                 <p style="margin: 0; font-size: 11px; color: #FFB3C1; line-height: 1.4;">
-                    🐸: "10분 간격 하이퍼 매치 데이터를 당기느라 서버가 탈탈 털리고 있어요! 1,000원씩 보태주시면 해외 소형 작전주 배팅장도 개발해올게요!"
+                    🐸: "10분 정시 무한 매크로 스트림 API를 유지하느라 트래픽 비용이 엄청 깨지고 있어요! 1,000원씩 보태주시면 롱/숏 랭킹 자동 반영 전광판도 파오겠습니다!"
                 </p>
             </div>
         """, unsafe_allow_html=True)
@@ -399,7 +415,7 @@ else:
         st.write("---")
         st.markdown("<h4 style='font-size:12px; color:#64748B;'>🤫 데이터 허브 건의 패널</h4>", unsafe_allow_html=True)
         with st.form("suggest_form", clear_on_submit=True):
-            s_input = st.text_input("📝 건의할 기능/종목", placeholder="예: 코스닥 레버리지도 추가 원함", label_visibility="collapsed")
+            s_input = st.text_input("📝 건의할 기능/종목", placeholder="예: 코스닥 3배 레버리지 추가요망", label_visibility="collapsed")
             s_submit = st.form_submit_button("🔒 서버 백엔드로 전송")
             if s_submit and s_input:
                 cur_t = datetime.datetime.now().strftime("%H:%M")
@@ -407,11 +423,3 @@ else:
                     st.session_state["suggested_stocks"] = []
                 st.session_state["suggested_stocks"].append({"time": cur_t, "text": s_input})
                 st.toast("✅ 건의 사항이 개발자 안전 프로토콜 DB에 전달되었습니다.", icon="🔒")
-
-        # 백엔드 어드민 콘솔
-        is_admin = st.toggle("⚙️ TERMINAL ROOT CONSOLE", value=False)
-        if is_admin:
-            st.markdown("<h5 style='font-size:11px; color:#FFD700;'>📂 SUGGESTED DATA STREAM</h5>", unsafe_allow_html=True)
-            if "suggested_stocks" in st.session_state:
-                for s in st.session_state["suggested_stocks"]:
-                    st.markdown(f"<p style='font-size:10px; margin:2px 0; color:#34D399;'><b>[{s['time']}]</b> {s['text']}</p>", unsafe_allow_html=True)
