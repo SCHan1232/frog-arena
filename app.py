@@ -6,7 +6,7 @@ import yfinance as yf
 
 # 1. 사이버펑크 토토 아레나 다크 테마 설정
 st.set_page_config(
-    page_title="⚡ 청개구리 인덱스 - 네온 상점 v3.0", 
+    page_title="⚡ 청개구리 인덱스 - 상점 예외 완치 v3.1", 
     page_icon="⚡",
     layout="wide"
 )
@@ -43,7 +43,7 @@ def get_global_server_data_hub():
             "셀트리온": {"UP": 0, "DOWN": 0}
         },
         "global_chat_stream": [
-            {"name": "[CHALLENGER] 운영진_🐸", "text": "⚡ v3.0 아레나 명예 네온 상점이 오픈되었습니다! 채팅창에서 압도적인 존재감을 뿜어내세요!"}
+            {"name": "[CHALLENGER] 운영진_🐸", "text": "⚡ v3.1 세션 예외 처리 패치 완료. 상점 및 배팅 시스템이 안전 모드로 구동 중입니다!"}
         ],
         "leaderboard": [
             {"rank": "👑 CHALLENGER", "name": "여의도작두가리가리", "points": "6,450 P", "win_rate": "84.2%", "color": "#FBBF24"},
@@ -58,7 +58,14 @@ global_server = get_global_server_data_hub()
 if "user_login_data" not in st.session_state:
     st.session_state["user_login_data"] = None
 
-# 유저 실시간 데이터 프로필 (상점 보유 아이템 항목 추가)
+if "chat_messages" not in st.session_state:
+    st.session_state["chat_messages"] = [
+        {"role": "user", "name": "여의도작두", "text": "와 대박 10분 지나서 새 회차 넘어가니까 저번 회차 배팅한 거 주가 비교해서 바로 정산되네!"}, 
+        {"role": "user", "name": "반대로만사는대리", "text": "상점 탭 에러 나던 거 이제 완전 깔끔하게 잘 열린다 ㅋㅋㅋ"},
+        {"role": "user", "name": "국장구조대", "text": "진짜 10분마다 판 열리고 닫히니까 시드 복구 뇌절 치기 딱 좋다"}
+    ]
+
+# 유저 실시간 데이터 프로필 구조 기본 보수 선언
 if "my_arena_profile" not in st.session_state:
     st.session_state["my_arena_profile"] = {
         "voted_hours": {},    
@@ -68,8 +75,7 @@ if "my_arena_profile" not in st.session_state:
         "total_matches": 0,   
         "win_matches": 0,     
         "title": "🥈 SILVER",
-        # ✨ v3.0 상점 전용 유저 인벤토리 커스텀 효과 상태 기본값
-        "active_skin": "DEFAULT",  # DEFAULT, GOLD_VIP, NEON_PULSE, HELL_FIRE
+        "active_skin": "DEFAULT",  
         "purchased_skins": ["DEFAULT"]
     }
 
@@ -98,7 +104,7 @@ elif st.session_state["user_login_data"] is None:
             <h1 style="color: #A3E635; font-size: 42px; font-weight: 900; letter-spacing: -2px; text-shadow: 0 0 15px rgba(163,230,53,0.6); margin-bottom: 5px;">
                 ⚡ FROG ARENA TERMINAL
             </h1>
-            <p style="color: #22D3EE; font-size: 13px; font-weight: bold; letter-spacing: 2px;">명예 커스텀 상점 스킨 탑재 아레나 터미널에 로그인하십시오.</p>
+            <p style="color: #22D3EE; font-size: 13px; font-weight: bold; letter-spacing: 2px;">상점 버그 패치 완료 버전 아레나 터미널에 로그인하십시오.</p>
         </div>
     """, unsafe_allow_html=True)
     
@@ -117,7 +123,7 @@ elif st.session_state["user_login_data"] is None:
                     "points": 1000, "total_matches": 0, "win_matches": 0, "title": "🥈 SILVER",
                     "active_skin": "DEFAULT", "purchased_skins": ["DEFAULT"]
                 }
-                st.toast(f"⚡ 스킨 인벤토리 로딩 완료.", icon="⚡")
+                st.toast(f"⚡ 스킨 인벤토리 복구 및 로딩 완료.", icon="⚡")
                 st.rerun()
 
 # 정식 아레나 가동
@@ -135,10 +141,10 @@ else:
                 <h1 style="color: #A3E635; font-size: 36px; font-weight: 900; margin: 0; letter-spacing: -2px; text-shadow: 0 0 10px rgba(163,230,53,0.4);">
                     ⚡ FROG INDEX ARENA
                 </h1>
-                <p style="font-size: 11px; color: #38BDF8; margin: 4px 0 0 0; font-weight: bold; letter-spacing: 1px;">⚙️ REAL-TIME 10-MIN MACRO AUTOMATIC SETTLE v3.0</p>
+                <p style="font-size: 11px; color: #38BDF8; margin: 4px 0 0 0; font-weight: bold; letter-spacing: 1px;">⚙️ REAL-TIME 10-MIN MACRO AUTOMATIC SETTLE v3.1</p>
             </div>
             <div style="background-color: #020617; border: 1px solid #38BDF8; padding: 6px 15px; border-radius: 20px; font-size: 11px; color: #38BDF8; font-weight: bold; box-shadow: 0 0 8px rgba(56,189,248,0.3);">
-                💎 PREMIUM CUSTOM SHOP ACTIVE
+                💎 PREMIUM SHOP SAFE MODE ACTIVE
             </div>
         </div>
     """, unsafe_allow_html=True)
@@ -196,8 +202,11 @@ else:
     prev_hour = current_hour if block_start_min >= 10 else (current_hour - 1) % 24
     past_macro_id = f"{kst_now.strftime('%Y%m%d')}_{prev_hour}_{prev_block_min}"
 
+    # 🛠️ [안전망 강화] 프로필 내부 핵심 딕셔너리 구조 예외 패딩 주입
     if "voted_hours" not in profile: profile["voted_hours"] = {}
     if "processed_hours" not in profile: profile["processed_hours"] = []
+    if "purchased_skins" not in profile: profile["purchased_skins"] = ["DEFAULT"]
+    if "active_skin" not in profile: profile["active_skin"] = "DEFAULT"
 
     # 10분 자동 누적 정산 엔진
     if past_macro_id not in profile["processed_hours"]:
@@ -238,7 +247,7 @@ else:
                     <div>
                         <span style="font-size: 11px; color: #64748B; font-weight: bold; letter-spacing: 1px;">👤 CURRENT PILOT PROFILE</span>
                         <h3 style="margin: 3px 0 0 0; color: #FFFFFF; font-size: 22px; font-weight: 800;">{profile['nickname']}</h3>
-                        <span style="display:inline-block; background-color:{my_tier_color}15; color:{my_tier_color}; padding:2px 10px; border-radius:4px; font-size:11px; font-weight:900; border:1px solid {my_tier_color}50; margin-top:5px;">{my_tier_title}</span>
+                        <span style="display:inline-block; background-color:{my_tier_color}15; color:{my_tier_color}; padding:2px 10px; border-radius:4px; font-size:11px; font-weight:900; border:1px solid {my_tier_color}50; margin-top:5px; letter-spacing:1px;">{my_tier_title}</span>
                     </div>
                     <div style="text-align: right;">
                         <span style="font-size: 11px; color: #64748B; font-weight: bold;">💰 AVAILABLE CREDIT</span>
@@ -310,7 +319,6 @@ else:
     with chat_layout:
         chat_tab, shop_tab = st.tabs(["💬 오픈 교신방", "🐸 명예 네온 상점"])
         
-        # [채팅 탭] 스킨 적용 유무에 따라 스타일을 빌드하는 핵심 로직
         with chat_tab:
             st.markdown("<p style='font-size:11px; color:#A3E635; margin:0;'>🟢 LIVE CHAT PROTOCOL ACTIVE</p>", unsafe_allow_html=True)
             chat_container = st.container(height=380)
@@ -322,9 +330,8 @@ else:
 
             if user_live_input := st.chat_input("교신 패킷 전송..."):
                 tier_badge = my_tier_title.split(" ")[0]
-                
-                # ✨ v3.0 스킨 등급별 닉네임 프론트엔드 스타일 렌더링 스케줄러
                 current_skin = profile.get("active_skin", "DEFAULT")
+                
                 if current_skin == "GOLD_VIP":
                     styled_name = f"<span style='color:#FBBF24; font-weight:900; text-shadow: 0 0 8px #FBBF24;'>👑 [골드VIP] {profile['nickname']}</span>"
                 elif current_skin == "NEON_PULSE":
@@ -337,7 +344,7 @@ else:
                 global_server["global_chat_stream"].append({"name": styled_name, "text": user_live_input})
                 st.rerun()
 
-        # [✨ 신설 상점 탭] 디스코드식 소셜 명예 과금 시스템의 시각화 인터페이스
+        # [✨ 상점 탭 - KeyError 버그 수정 완료 파트]
         with shop_tab:
             st.markdown("### 🐸 아레나 커스텀 숍")
             st.caption("커피 한 잔 값 후원으로 오픈방의 지배자가 되세요. 후원 시 스킨이 즉시 영구 해금됩니다.")
@@ -354,9 +361,11 @@ else:
                     st.markdown(f"**{skin['title']}**")
                     st.markdown(f"<p style='font-size:11px; color:#94A3B8; margin:2px 0;'>{skin['desc']}</p>", unsafe_allow_html=True)
                     
-                    # 보유 여부 검사
-                    if skin["id"] in profile["purchased_skins"]:
-                        if profile["active_skin"] == skin["id"]:
+                    # 🛠️ [.get() 완치안] 캐시가 꼬여있어도 에러 원천 봉쇄
+                    owned_skins = profile.get("purchased_skins", ["DEFAULT"])
+                    
+                    if skin["id"] in owned_skins:
+                        if profile.get("active_skin", "DEFAULT") == skin["id"]:
                             st.button("✅ 현재 장착 중", key=f"active_{skin['id']}", disabled=True, use_container_width=True)
                         else:
                             if st.button("🔄 스킨 장착하기", key=f"wear_{skin['id']}", use_container_width=True):
@@ -364,19 +373,19 @@ else:
                                 st.toast(f"✨ {skin['title']}을 장착했습니다!", icon="✨")
                                 st.rerun()
                     else:
-                        # 미보유 시 Toss 가상 모의 후원 연동 게이트
                         c_shop1, c_shop2 = st.columns([1.2, 1.0])
                         with c_shop1:
                             st.caption(f"💰 후원가: **{skin['price_krw']}**")
                         with c_shop2:
                             if st.button("⚡ 영구 후원개방", key=f"buy_{skin['id']}", use_container_width=True):
-                                # 가상 연동 처리 (실 배포시 toss.me 후원 성공 후 콜백 동기화 파트)
+                                if "purchased_skins" not in profile:
+                                    profile["purchased_skins"] = ["DEFAULT"]
                                 profile["purchased_skins"].append(skin["id"])
                                 profile["active_skin"] = skin["id"]
                                 st.toast(f"🎉 후원 감사합니다! {skin['title']} 영구 해금 완료!", icon="👑")
                                 st.rerun()
             
-            if profile["active_skin"] != "DEFAULT":
+            if profile.get("active_skin", "DEFAULT") != "DEFAULT":
                 if st.button("❌ 모든 스킨 해제 (기본형)", use_container_width=True):
                     profile["active_skin"] = "DEFAULT"; st.rerun()
 
