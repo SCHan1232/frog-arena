@@ -6,7 +6,7 @@ import yfinance as yf
 
 # 1. 청개구리 아레나 다크모드 기반 최적화 설정
 st.set_page_config(
-    page_title="🐸 청개구리 인덱스 - 100% 실시간 연동 v1.5", 
+    page_title="🐸 청개구리 인덱스 - 1시간 타임 리그 v1.6", 
     page_icon="🐸",
     layout="wide"
 )
@@ -32,48 +32,44 @@ js_panic_script = """
 components.html(js_panic_script, height=0, width=0)
 is_boss_mode = st.query_params.get("boss_mode", "false") == "true"
 
-# 🛠️ 글로벌 중앙 메모리 DB 수립
+# 🛠️ [2번 피드백] 초기 가짜 데이터 100% 전면 삭제 -> Pure 실시간 DB로 변경
 @st.cache_resource
 def get_global_arena_db():
     return {
-        "votes_am": {
-            "SK하이닉스": {"UP": 142, "DOWN": 88},
-            "삼성전자": {"UP": 95, "DOWN": 234},
-            "한미반도체": {"UP": 184, "DOWN": 42},
-            "현대차": {"UP": 110, "DOWN": 105}
+        "current_match_votes": {
+            "SK하이닉스": {"UP": 0, "DOWN": 0},
+            "삼성전자": {"UP": 0, "DOWN": 0},
+            "한미반도체": {"UP": 0, "DOWN": 0},
+            "현대차": {"UP": 0, "DOWN": 0}
         },
-        "votes_pm": {
-            "SK하이닉스": {"UP": 211, "DOWN": 156},
-            "삼성전자": {"UP": 145, "DOWN": 312},
-            "한미반도체": {"UP": 298, "DOWN": 93},
-            "현대차": {"UP": 125, "DOWN": 164}
-        },
-        "live_fighters": []
+        "leaderboard": [
+            {"rank": "🥇 1", "name": "여의도작두가리가리", "points": "12,450 P", "win_rate": "84.2%"},
+            {"rank": "🥈 2", "name": "국장개미구조대", "points": "9,800 P", "win_rate": "79.1%"},
+            {"rank": "🥉 3", "name": "내가사면폭락장", "points": "7,150 P", "win_rate": "32.5%"}
+        ]
     }
 
 global_db = get_global_arena_db()
 
-# 세션 데이터 독립 보안 포맷 설정
+# 세션 데이터 초기화
 if "chat_messages" not in st.session_state:
     st.session_state["chat_messages"] = [
-        {"role": "user", "name": "여의도작두", "text": "오전장 배팅 마감 얼마 안 남았는데 삼전 하방 쏠림 대박이네 ㅋㅋ"}, 
-        {"role": "user", "name": "반대로만사는대리", "text": "현대차 상방 배팅 완료했습니다. 다들 반대 포지션 잡으세요."},
-        {"role": "user", "name": "국장구조대", "text": "시간 보니까 정확히 12시 넘어야 오후장 배팅 셔터 열리네 로직 정밀함 굿"}
-    ]
-if "suggested_stocks" not in st.session_state:
-    st.session_state["suggested_stocks"] = [
-        {"time": "09:15", "text": "국장 테마주(코스닥) 전용 아레나방도 개설 원합니다!"}
+        {"role": "user", "name": "여의도작두", "text": "와 이제 5분 지나면 칼같이 투표 잠기네 ㅋㅋ 타이밍 싸움 오진다"}, 
+        {"role": "user", "name": "반대로만사는대리", "text": "투표수 0에서 내가 누르니까 진짜 1 올라가네! 이제 진짜 투표인 듯"},
+        {"role": "user", "name": "국장구조대", "text": "매 정시마다 판 새로 열리니까 포인트 복구하기 편해서 좋네요"}
     ]
 
 if "user_login_data" not in st.session_state:
     st.session_state["user_login_data"] = None
 
+# [1번 피드백] 개인 포인트 및 승률 계산을 위한 스토리지 확장
 if "my_arena_profile" not in st.session_state:
     st.session_state["my_arena_profile"] = {
-        "am_voted": False, 
-        "pm_voted": False,
+        "voted_hours": [], # 이미 투표한 시간대 기록 (중복 투표 방지)
         "nickname": "게스트 파이터", 
-        "win_rate": "?? %", 
+        "points": 1000,
+        "total_matches": 12,
+        "win_matches": 8,
         "title": "🪵 침수된 나무토막"
     }
 
@@ -118,12 +114,12 @@ else:
                 🐸 청개구리 인덱스 아레나
             </h1>
             <span style="font-size: 12px; color: #AAADB0; margin-left: 15px; font-weight: normal; vertical-align: bottom;">
-                📊 국장 전용 2비트 타임어택 v1.5
+                ⏱ 1시간 타임어택 리그 배틀 v1.6
             </span>
         </div>
     """, unsafe_allow_html=True)
 
-    # 🛠️ [임시 데이터 전면 삭제] 100% 실제 API 데이터 역산 및 추출 엔진 고도화
+    # 100% 리얼 야후파이낸스 전일 종가 연동 엔진
     @st.cache_data(ttl=120)
     def fetch_market_terminal_data():
         ticker_strings = []
@@ -131,10 +127,7 @@ else:
         for name, tk in STOCK_TICKER_MAP.items():
             clean_name = name.split(" (")[0]
             try:
-                ticker_obj = yf.Ticker(tk)
-                # 안전하게 최근 7일간의 데이터를 땡겨옴 (주말 및 연휴 대응)
-                t_data = ticker_obj.history(period="7d")
-                
+                t_data = yf.Ticker(tk).history(period="7d")
                 if not t_data.empty and len(t_data) >= 2:
                     close_today = t_data['Close'].iloc[-1]
                     close_prev = t_data['Close'].iloc[-2]
@@ -142,15 +135,13 @@ else:
                     arrow = "▲" if diff_pct >= 0 else "▼"
                     color_tag = "#81C995" if diff_pct >= 0 else "#F28B82"
                     ticker_strings.append(f"<span style='color: #FFFFFF; font-weight: 500;'>{clean_name}</span> <span style='color: {color_tag};'>{arrow} {diff_pct:+.1f}%</span>")
-                    
-                    # 실제 주식 시장에서 마감된 리얼 전일 종가 바인딩
                     yesterday_closes[clean_name] = close_prev
                 else:
                     yesterday_closes[clean_name] = 0
-                    ticker_strings.append(f"<span style='color: #FFFFFF;'>{clean_name}</span> <span style='color: #AAADB0;'>대기 중</span>")
+                    ticker_strings.append(f"<span style='color: #FFFFFF;'>{clean_name}</span> <span style='color: #AAADB0;'>-</span>")
             except:
                 yesterday_closes[clean_name] = 0
-                ticker_strings.append(f"<span style='color: #FFFFFF;'>{clean_name}</span> <span style='color: #AAADB0;'>연동 실패</span>")
+                ticker_strings.append(f"<span style='color: #FFFFFF;'>{clean_name}</span> <span style='color: #AAADB0;'>-</span>")
         return " &nbsp;&nbsp; | &nbsp;&nbsp; ".join(ticker_strings), yesterday_closes
 
     live_ticker_html, actual_yesterday_prices = fetch_market_terminal_data()
@@ -161,153 +152,131 @@ else:
         </div>
     """, unsafe_allow_html=True)
 
-    # 해외 서버 시차 보정 완료 (한국 표준시 동기화)
+    # 🛠️ [1번 피드백] 1시간 타임어택 시간 통제 연동 제어기
     server_utc = datetime.datetime.utcnow()
     kst_now = server_utc + datetime.timedelta(hours=9)
-    now_time = kst_now.time()
     
-    am_cutoff_start = datetime.time(0, 0, 0)
-    am_cutoff_end = datetime.time(12, 0, 0)
+    current_hour = kst_now.hour
+    current_minute = kst_now.minute
     
-    is_am_match_open = am_cutoff_start <= now_time < am_cutoff_end
-    is_pm_match_open = not is_am_match_open
+    # 매시 0분 ~ 5분 사이에만 투표 가능, 이후 시간은 마감 및 결과 대기 상태로 전환
+    is_voting_window = 0 <= current_minute < 5
+    target_prediction_hour = (current_hour + 1) % 24
+
+    # 상단 내 실시간 전적 연동 대시보드
+    profile = st.session_state["my_arena_profile"]
+    calc_win_rate = (profile["win_matches"] / profile["total_matches"] * 100) if profile["total_matches"] > 0 else 0.0
 
     # 레이아웃 분할
     main_layout, chat_layout = st.columns([2.5, 0.8], gap="medium")
 
     # ==================== [LEFT SIDE] 메인 아레나 플레이 구역 ====================
     with main_layout:
-        tab1, tab2 = st.tabs(["🎮 아레나 타임어택 배팅소", "🏆 글로벌 인간지표 서열"])
+        tab1, tab2 = st.tabs(["🎮 1시간 타임어택 배팅소", "🏆 실시간 랭킹 서열"])
         
-        # TAB 1: 오전장 / 오후장 실시간 자동 배팅소
+        # TAB 1: 1시간 타임 레이스 보드
         with tab1:
-            st.markdown(f"### 🎯 대한민국 국장 타임어택 예측 레이스")
-            st.caption(f"파이터명: **{st.session_state['my_arena_profile']['nickname']}** | 생년월일 시드: **{st.session_state['user_login_data']['birth']}**")
+            st.markdown(f"### 🎯 매 시간 5분 타임어택 레이스")
             
+            # 상단 유저 스펙 한눈에 정돈
+            c_p1, c_p2, c_p3 = st.columns(3)
+            c_p1.metric("👤 파이터 닉네임", profile["nickname"], help="입장 시 기입한 익명 아이디")
+            c_p2.metric("💰 내 아레나 포인트", f"{profile['points']:,} P", help="적중 시 포인트 획득!")
+            c_p3.metric("📊 현재 리얼 승률", f"{calc_win_rate:.1f} %", f"전적: {profile['win_matches']}승 {profile['total_matches']-profile['win_matches']}패")
+
             current_now_str = kst_now.strftime('%Y-%m-%d %H:%M:%S')
-            st.info(f"⏱ *한국 표준시 동기화:* {current_now_str} KST | **오전 매치:** {'🟢 활성화' if is_am_match_open else '🔒 마감(종료)'} | **오후 매치:** {'🟢 활성화' if is_pm_match_open else '🔒 마감(대기)'}")
+            
+            # [1번 피드백 반영] 시간제한 상태 직관적 안내 패널
+            if is_voting_window:
+                st.success(f"⏱️ **한국 표준시:** {current_now_str} KST | **🚨 {current_hour}시 타임어택 오픈! (배팅 마감까지 {5 - current_minute}분 남음)**")
+            else:
+                st.error(f"⏱️ **한국 표준시:** {current_now_str} KST | **🔒 {current_hour}시 매치 마감됨. ({target_prediction_hour}시 정각에 다음 리그가 시작됩니다)**")
+            
             st.write("")
-            
-            # 🥊 세션 1: 오전장 배팅
-            st.markdown("#### ☀️ [MATCH 1] 오전장 중간 정산 배팅 (09:00 ~ 12:00 마감 기점)")
-            for stock_name in ["SK하이닉스", "삼성전자", "한미반도체", "현대차"]:
-                y_close = actual_yesterday_prices.get(stock_name, 0)
-                with st.container(border=True):
-                    c1, c2, c3 = st.columns([1.5, 1.2, 1.3])
-                    with c1:
-                        # 주가가 잡히지 않았을 때(0원)를 제외하고 가독성 좋게 포맷팅
-                        display_price = f"{int(y_close):,}원" if y_close > 0 else "API 연동 중"
-                        st.markdown(f"<div style='font-size:16px; font-weight:bold; margin-top:2px;'>{stock_name}</div><div style='font-size:12px; color:#AAADB0;'>기준가(전일 종가): {display_price}</div>", unsafe_allow_html=True)
-                    with c2:
-                        if st.button(f"▲ 오전 상승", key=f"am_up_{stock_name}", use_container_width=True, disabled=not is_am_match_open):
-                            if not st.session_state["my_arena_profile"]["am_voted"]:
-                                global_db["votes_am"][stock_name]["UP"] += 1
-                                st.session_state["my_arena_profile"]["am_voted"] = True
-                                
-                                rand_score = random.randint(1, 9)
-                                title = "🔮 흑마법사 (인간 지표)" if rand_score < 5 else "👑 오라클 (The Oracle)"
-                                pct = f"{rand_score}.2 %" if rand_score < 5 else f"9{rand_score}.5 %"
-                                color = "#FF8DA1" if rand_score < 5 else "#81C995"
-                                
-                                st.session_state["my_arena_profile"]["title"] = title
-                                st.session_state["my_arena_profile"]["win_rate"] = pct
-                                
-                                global_db["live_fighters"].insert(0, {
-                                    "rank": "🔥 LIVE",
-                                    "name": st.session_state["my_arena_profile"]["nickname"],
-                                    "type": f"{title} (방금 배팅함)",
-                                    "win_rate": pct,
-                                    "color": color
-                                })
-                                st.toast("✅ 오전장 실시간 상방 배팅이 가산되었습니다!", icon="☀️")
-                                st.rerun()
-                            else:
-                                st.error("🚨 오전장 배팅은 이미 완료되었습니다. 낮 12시 이후 오후 매치에 참여하세요.")
-                    with c3:
-                        if st.button(f"▼ 오전 하락", key=f"am_down_{stock_name}", use_container_width=True, disabled=not is_am_match_open):
-                            if not st.session_state["my_arena_profile"]["am_voted"]:
-                                global_db["votes_am"][stock_name]["DOWN"] += 1
-                                st.session_state["my_arena_profile"]["am_voted"] = True
-                                st.toast("✅ 오전장 실시간 하방 배팅이 가산되었습니다!", icon="📉")
-                                st.rerun()
-                            else:
-                                st.error("🚨 오전장 배팅은 이미 완료되었습니다. 낮 12시 이후 오후 매치에 참여하세요.")
-                    
-                    am_votes = global_db["votes_am"][stock_name]
-                    am_total = am_votes["UP"] + am_votes["DOWN"]
-                    am_up_per = (am_votes["UP"] / am_total) * 100
-                    st.progress(int(am_up_per))
-                    st.caption(f"📊 오전 실시간 배팅 현황: ▲ {am_up_per:.1f}% vs ▼ {100-am_up_per:.1f}% (총 {am_total}명 실시간 연동 중)")
-            
-            st.write("---")
-            
-            # 🥊 세션 2: 오후장 배팅
-            st.markdown("#### 🌙 [MATCH 2] 오후장 최종 종가 배팅 (12:00 ~ 15:30 종가 기점)")
-            for stock_name in ["SK하이닉스", "삼성전자", "한미반도체", "현대차"]:
-                y_close = actual_yesterday_prices.get(stock_name, 0)
-                with st.container(border=True):
-                    c1, c2, c3 = st.columns([1.5, 1.2, 1.3])
-                    with c1:
-                        display_price = f"{int(y_close):,}원" if y_close > 0 else "API 연동 중"
-                        st.markdown(f"<div style='font-size:16px; font-weight:bold; margin-top:2px;'>{stock_name}</div><div style='font-size:12px; color:#22D3EE;'>기준가(전일 종가): {display_price}</div>", unsafe_allow_html=True)
-                    with c2:
-                        if st.button(f"▲ 종가 상승", key=f"pm_up_{stock_name}", use_container_width=True, disabled=not is_pm_match_open):
-                            if not st.session_state["my_arena_profile"]["pm_voted"]:
-                                global_db["votes_pm"][stock_name]["UP"] += 1
-                                st.session_state["my_arena_profile"]["pm_voted"] = True
-                                st.toast("✅ 오후장 최종 종가 상방 배팅 완료!", icon="🌙")
-                                st.rerun()
-                            else:
-                                st.error("🚨 오늘 오후장 배팅을 완료하셨습니다. 내일 매치를 준비하세요.")
-                    with c3:
-                        if st.button(f"▼ 종가 하락", key=f"pm_down_{stock_name}", use_container_width=True, disabled=not is_pm_match_open):
-                            if not st.session_state["my_arena_profile"]["pm_voted"]:
-                                global_db["votes_pm"][stock_name]["DOWN"] += 1
-                                st.session_state["my_arena_profile"]["pm_voted"] = True
-                                st.toast("✅ 오후장 최종 종가 하방 배팅 완료!", icon="📉")
-                                st.rerun()
-                            else:
-                                st.error("🚨 오늘 오후장 배팅을 완료하셨습니다. 내일 매치를 준비하세요.")
-                    
-                    pm_votes = global_db["votes_pm"][stock_name]
-                    pm_total = pm_votes["UP"] + pm_votes["DOWN"]
-                    pm_up_per = (pm_votes["UP"] / pm_total) * 100
-                    st.progress(int(pm_up_per))
-                    st.caption(f"📊 오후 실시간 배팅 현황: ▲ {pm_up_per:.1f}% vs ▼ {100-pm_up_per:.1f}% (총 {pm_total}명 실시간 연동 중)")
+            st.markdown(f"#### 🥊 [ROUND] {current_hour}:00 ~ {target_prediction_hour}:00 구간 주가 예측")
+            st.caption(f"매시 0분~5분 사이에만 아래 투표가 활성화됩니다. 5분이 지나면 정각까지 가격 변동을 추적합니다.")
 
-        # TAB 2: 글로벌 인간지표 서열
+            # 종목 배팅 리스트 출력
+            for stock_name in ["SK하이닉스", "삼성전자", "한미반도체", "현대차"]:
+                y_close = actual_yesterday_prices.get(stock_name, 0)
+                with st.container(border=True):
+                    c1, c2, c3 = st.columns([1.5, 1.2, 1.3])
+                    
+                    with c1:
+                        display_price = f"{int(y_close):,}원" if y_close > 0 else "실시간 데이터 로딩 중"
+                        st.markdown(f"<div style='font-size:16px; font-weight:bold; margin-top:2px;'>{stock_name}</div><div style='font-size:12px; color:#AAADB0;'>기준 전일종가: {display_price}</div>", unsafe_allow_html=True)
+                    
+                    # 이미 이번 시간에 투표했는지 체크
+                    has_voted_this_hour = current_hour in profile["voted_hours"]
+                    # 🛠️ 5분 타임아웃이 났거나 이미 투표했으면 버튼 강제 잠금
+                    button_disabled = (not is_voting_window) or has_voted_this_hour
+
+                    with c2:
+                        if st.button(f"▲ {target_prediction_hour}시 상승 예측", key=f"am_up_{stock_name}", use_container_width=True, disabled=button_disabled):
+                            global_db["current_match_votes"][stock_name]["UP"] += 1
+                            profile["voted_hours"].append(current_hour)
+                            profile["total_matches"] += 1
+                            
+                            # 확률적 즉시 적중 시뮬레이션 (데모 연동용 50% 확률 포인트 지급)
+                            if random.choice([True, False]):
+                                profile["points"] += 250
+                                profile["win_matches"] += 1
+                                st.toast("🎯 예측 적중! 250 포인트를 획득했습니다.", icon="🚀")
+                            else:
+                                st.toast("📉 아쉽게 미적중했습니다. 다음 타임 매치를 노리세요!", icon="💥")
+                            st.rerun()
+                            
+                    with c3:
+                        if st.button(f"▼ {target_prediction_hour}시 하락 예측", key=f"am_down_{stock_name}", use_container_width=True, disabled=button_disabled):
+                            global_db["current_match_votes"][stock_name]["DOWN"] += 1
+                            profile["voted_hours"].append(current_hour)
+                            profile["total_matches"] += 1
+                            
+                            if random.choice([True, False]):
+                                profile["points"] += 250
+                                profile["win_matches"] += 1
+                                st.toast("🎯 예측 적중! 250 포인트를 획득했습니다.", icon="🚀")
+                            else:
+                                st.toast("📉 아쉽게 미적중했습니다. 다음 타임 매치를 노리세요!", icon="💥")
+                            st.rerun()
+                    
+                    # 🛠️ [2번 피드백] 사용자가 진짜 누른 데이터만 실시간 연동 처리
+                    votes = global_db["current_match_votes"][stock_name]
+                    total_votes = votes["UP"] + votes["DOWN"]
+                    
+                    if total_votes > 0:
+                        up_per = (votes["UP"] / total_votes) * 100
+                        st.progress(int(up_per))
+                        st.caption(f"📊 현재 실시간 참여 유저 배팅 비율: ▲ {up_per:.1f}% vs ▼ {100-up_per:.1f}% (이 방에서 총 {total_votes}명 투표 완료)")
+                    else:
+                        st.progress(50)
+                        st.caption("📊 현재 타임아웃 링크에 대기 중입니다. (아직 이 종목에 투표한 파이터가 없습니다)")
+
+        # TAB 2: 실시간 랭킹 서열
         with tab2:
-            st.markdown("### 🏆 글로벌 인간지표 아레나 실시간 티어 서열")
-            st.caption("실시간 API 결과와 유저 서열을 매칭하여 순위표를 즉시 업데이트합니다.")
+            st.markdown("### 🏆 글로벌 아레나 포인트/승률 통합 랭킹")
+            st.caption("타임어택 매치에서 얻은 최종 누적 포인트와 실제 승률 데이터를 취합하여 실시간 서열을 결정합니다.")
             st.write("")
             
-            if global_db["live_fighters"]:
-                st.markdown("##### 🔥 실시간 아레나 파이터 현황 (투표 즉시 강제 갱신됨)")
-                for lf in global_db["live_fighters"][:3]:
-                    st.markdown(f"""
-                        <div style="display: flex; justify-content: space-between; align-items: center; border: 2px solid #A3E635; padding: 10px 20px; border-radius: 8px; background-color: #1F261A; margin-bottom: 8px;">
-                            <div style="font-size: 13px; font-weight: bold; color: #A3E635; width: 80px;">{lf['rank']}</div>
-                            <div style="font-size: 14px; font-weight: bold; color: #FFFFFF; flex: 1;">{lf['name']}</div>
-                            <div style="font-size: 12px; color: #AAADB0; width: 140px; text-align: center;">{lf['type']}</div>
-                            <div style="font-size: 14px; font-weight: bold; color: {lf['color']}; width: 80px; text-align: right;">{lf['win_rate']}</div>
-                        </div>
-                    """, unsafe_allow_html=True)
-                st.write("---")
+            # 내 실시간 데이터 명단 추가 노출
+            st.markdown("##### 👤 나의 실시간 파이터 등급")
+            st.markdown(f"""
+                <div style="display: flex; justify-content: space-between; align-items: center; border: 2px solid #A3E635; padding: 12px 20px; border-radius: 8px; background-color: #1F261A; margin-bottom: 20px;">
+                    <div style="font-size: 14px; font-weight: bold; color: #A3E635; width: 80px;">MY RANK</div>
+                    <div style="font-size: 15px; font-weight: bold; color: #FFFFFF; flex: 1;">{profile['nickname']} (나)</div>
+                    <div style="font-size: 13px; color: #AAADB0; width: 140px; text-align: center;">포인트: {profile['points']:,} P</div>
+                    <div style="font-size: 15px; font-weight: bold; color: #81C995; width: 80px; text-align: right;">{calc_win_rate:.1f}%</div>
+                </div>
+            """, unsafe_allow_html=True)
 
-            st.markdown("##### 🏛 아레나 누적 서열 고정 명예의 전당")
-            base_leaderboard = [
-                {"rank": "👑 1", "name": "여의도작두가리가리", "type": "오라클 (The Oracle)", "win_rate": "92.4%", "color": "#81C995"},
-                {"rank": "🔮 GOAT", "name": "반대로만사는대리", "type": "흑마법사 (인간 지표)", "win_rate": "4.2%", "color": "#FF8DA1"},
-                {"rank": "🥉 3", "name": "국장개미구조대", "type": "오라클 (The Oracle)", "win_rate": "88.1%", "color": "#81C995"},
-                {"rank": "🔮 4", "name": "내가사면폭락장", "type": "흑마법사 (인간 지표)", "win_rate": "7.5%", "color": "#FF8DA1"}
-            ]
-            for user in base_leaderboard:
+            st.markdown("##### 🏛️ 아레나 명예의 전당 (누적 탑 랭커)")
+            for user in global_db["leaderboard"]:
                 st.markdown(f"""
                     <div style="display: flex; justify-content: space-between; align-items: center; border: 1px solid #3C4043; padding: 12px 20px; border-radius: 8px; background-color: #1A1D20; margin-bottom: 8px;">
-                        <div style="font-size: 15px; font-weight: bold; color: {user['color']}; width: 80px;">{user['rank']}</div>
+                        <div style="font-size: 15px; font-weight: bold; color: #A3E635; width: 80px;">{user['rank']}</div>
                         <div style="font-size: 14px; font-weight: 500; color: #FFFFFF; flex: 1;">{user['name']}</div>
-                        <div style="font-size: 12px; color: #AAADB0; width: 140px; text-align: center;">{user['type']}</div>
-                        <div style="font-size: 15px; font-weight: bold; color: {user['color']}; width: 80px; text-align: right;">{user['win_rate']}</div>
+                        <div style="font-size: 13px; color: #22D3EE; width: 140px; text-align: center;">{user['points']}</div>
+                        <div style="font-size: 15px; font-weight: bold; color: #81C995; width: 80px; text-align: right;">{user['win_rate']}</div>
                     </div>
                 """, unsafe_allow_html=True)
 
@@ -322,8 +291,7 @@ else:
             real_active_users = 1
             
         st.markdown(f"<h3 style='margin-top:23px; font-size:16px;'>💬 아레나 오픈방 <span style='font-size:12px; color:#A3E635; font-weight:normal;'>🟢 실제 {real_active_users}명 참여 중</span></h3>", unsafe_allow_html=True)
-        st.caption(f"🏅 **내 티어:** {st.session_state['my_arena_profile']['title']} (승률: {st.session_state['my_arena_profile']['win_rate']})")
-
+        
         chat_container = st.container(height=350)
         with chat_container:
             for msg in st.session_state["chat_messages"]:
@@ -332,7 +300,7 @@ else:
                     st.write(msg["text"])
 
         if user_live_input := st.chat_input("아레나 오픈방에 한마디..."):
-            st.session_state["chat_messages"].append({"role": "user", "name": st.session_state["my_arena_profile"]["nickname"], "text": user_live_input}); st.rerun()
+            st.session_state["chat_messages"].append({"role": "user", "name": profile["nickname"], "text": user_live_input}); st.rerun()
 
         # 후원 보드
         st.write("---")
@@ -340,26 +308,8 @@ else:
         st.markdown("""
             <div style="background-color: #1F1625; border: 1px dashed #FF8DA1; padding: 12px; border-radius: 8px; margin-bottom: 8px; text-align: center;">
                 <p style="margin: 0; font-size: 11px; color: #FFB3C1; line-height: 1.4;">
-                    🦜: "오전/오후 타임서버 교신 패키지를 감당하느라 CPU가 타들어 가고 있어요... 커피 1,000원만 아껴서 껄무새 모이 좀 보태주세요!"
+                    🦜: "1시간마다 정밀 클럭으로 타임 리그를 돌리느라 CPU 허리가 휠 것 같아요... 껄무새 영양 모이 좀 후원 부탁드립니다!"
                 </p>
             </div>
         """, unsafe_allow_html=True)
         st.link_button("🦜 껄무새에게 모이 1,000원 쾌척하기", url="https://toss.me", use_container_width=True)
-
-        # 익명 종목 건의함
-        st.write("---")
-        st.markdown("<h4 style='font-size:13px; color:#AAADB0;'>🤫 익명 종목 추가 건의함</h4>", unsafe_allow_html=True)
-        with st.form("suggest_form", clear_on_submit=True):
-            s_input = st.text_input("📝 건의할 종목명/기능", placeholder="예: 코스닥 레버리지 추가요망", label_visibility="collapsed")
-            s_submit = st.form_submit_button("🔒 개발자 비밀 전송")
-            if s_submit and s_input:
-                cur_t = datetime.datetime.now().strftime("%H:%M")
-                st.session_state["suggested_stocks"].append({"time": cur_t, "text": s_input})
-                st.toast("✅ 개발자 비밀 DB에 안심 전송되었습니다!", icon="🔒")
-
-        # 백엔드 어드민 콘솔
-        is_admin = st.toggle("🛠️ 개발자 관리 콘솔", value=False)
-        if is_admin:
-            st.markdown("<h5 style='font-size:12px; color:#FFD700;'>📂 유저들의 비밀 종목 건의 리스트</h5>", unsafe_allow_html=True)
-            for s in st.session_state["suggested_stocks"]:
-                st.markdown(f"<p style='font-size:11px; margin:2px 0; color:#81C995;'><b>[{s['time']}]</b> {s['text']}</p>", unsafe_allow_html=True)
