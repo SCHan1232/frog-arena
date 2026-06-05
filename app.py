@@ -6,7 +6,7 @@ import yfinance as yf
 
 # 1. 사이버펑크 토토 아레나 다크 테마 설정
 st.set_page_config(
-    page_title="⚡ 청개구리 인덱스 - 룰렛 정산 완치 v3.7", 
+    page_title="⚡ 청개구리 인덱스 - 계정 동기화 v3.8", 
     page_icon="⚡",
     layout="wide"
 )
@@ -32,10 +32,19 @@ js_panic_script = """
 components.html(js_panic_script, height=0, width=0)
 is_boss_mode = st.query_params.get("boss_mode", "false") == "true"
 
-# 🛠️ 글로벌 서버 데이터 허브 (실시간 다중 접속 채팅, 투표, 확성기 전광판 연동)
+# 🛠️ 글로벌 서버 데이터 허브 (실시간 다중 접속 채팅, 투표, 확성기 전광판 및 [전역 유저 DB] 연동)
 @st.cache_resource
 def get_global_server_data_hub():
     return {
+        # 💾 [핵심 패치] 새로고침해도 유저 전적을 영구히 격리 저장하는 가상 데이터베이스
+        "global_user_db": {
+            "여의도작두가리가리_19850101": {
+                "nickname": "여의도작두가리가리", "points": 6450, "total_matches": 50, "win_matches": 42, "active_medal": "👑 여의도 작두", "voted_hours": {}, "processed_hours": []
+            },
+            "국장개미구조대_19901225": {
+                "nickname": "국장개미구조대", "points": 4100, "total_matches": 38, "win_matches": 30, "active_medal": "🔥 역배의 신", "voted_hours": {}, "processed_hours": []
+            }
+        },
         "current_match_votes": {
             "SK하이닉스": {"UP": 0, "DOWN": 0}, "삼성전자": {"UP": 0, "DOWN": 0},
             "한미반도체": {"UP": 0, "DOWN": 0}, "현대차": {"UP": 0, "DOWN": 0},
@@ -43,37 +52,17 @@ def get_global_server_data_hub():
             "셀트리온": {"UP": 0, "DOWN": 0}
         },
         "global_chat_stream": [
-            {"name": "<span style='color:#A3E635; font-weight:bold;'>[📢 공지] 운영진_🐸</span>", "text": "⚡ v3.7 인터랙티브 룰렛 무한 로킹 버그 패치 완료! 100% 실시간 정산 및 5회 제한이 작동합니다."}
+            {"name": "<span style='color:#A3E635; font-weight:bold;'>[📢 공지] 운영진_🐸</span>", "text": "⚡ v3.8 계정 영속성 세이브 기능 도입! 동일 닉네임+생년월일 입력 시 전적과 포인트가 완전 복구됩니다!"}
         ],
         "loudsheet_announcement": None,  
         "burst_match_status": {},          
-        "leaderboard": [
-            {"rank": "👑 CHALLENGER", "name": "여의도작두가리가리", "points": "6,450 P", "win_rate": "84.2%", "color": "#FBBF24"},
-            {"rank": "🔮 MASTER", "name": "국장개미구조대", "points": "4,100 P", "win_rate": "79.1%", "color": "#C084FC"},
-            {"rank": "💎 DIAMOND", "name": "단타는예술이다", "points": "2,850 P", "win_rate": "71.4%", "color": "#60A5FA"},
-            {"rank": "🪵 IRON", "name": "내가사면폭락장", "points": "350 P", "win_rate": "12.5%", "color": "#94A3B8"}
-        ]
+        "leaderboard": []
     }
 
 global_server = get_global_server_data_hub()
 
 if "user_login_data" not in st.session_state:
     st.session_state["user_login_data"] = None
-
-# 유저 실시간 데이터 프로필
-if "my_arena_profile" not in st.session_state:
-    st.session_state["my_arena_profile"] = {
-        "voted_hours": {},    
-        "processed_hours": [], 
-        "nickname": "게스트 파이터", 
-        "points": 1000,       
-        "total_matches": 0,   
-        "win_matches": 0,     
-        "title": "🥈 SILVER",
-        "active_medal": "🌱 응애 파이터",
-        "roulette_count": 0,
-        "roulette_date": ""
-    }
 
 # 포인트 기준 롤 티어 판별 딕셔너리
 def calculate_lol_tier(pts):
@@ -86,12 +75,41 @@ def calculate_lol_tier(pts):
     elif pts >= 500: return "🥉 BRONZE", "#B45309"
     else: return "🪵 IRON", "#475569"
 
-def get_earned_medals(profile):
+def get_earned_medals(points, win_matches):
     unlocked = ["🌱 응애 파이터"]
-    if profile["win_matches"] >= 5: unlocked.append("🎯 족집게 도사")
-    if profile["points"] >= 2000: unlocked.append("🔥 역배의 신")
-    if profile["win_matches"] >= 10: unlocked.append("👑 여의도 작두")
+    if win_matches >= 5: unlocked.append("🎯 족집게 도사")
+    if points >= 2000: unlocked.append("🔥 역배의 신")
+    if win_matches >= 10: unlocked.append("👑 여의도 작두")
     return unlocked
+
+# 🛠️ [실시간 실시간 자동 저장 매크로] 자산 효율 변경 시 유저 전역 DB 백업선 가동
+def save_to_global_user_db(account_id, profile):
+    global_server["global_user_db"][account_id] = {
+        "nickname": profile["nickname"],
+        "points": profile["points"],
+        "total_matches": profile["total_matches"],
+        "win_matches": profile["win_matches"],
+        "active_medal": profile["active_medal"],
+        "voted_hours": profile.get("voted_hours", {}),
+        "processed_hours": profile.get("processed_hours", []),
+        "roulette_count": profile.get("roulette_count", 0),
+        "roulette_date": profile.get("roulette_date", "")
+    }
+
+# 🛠️ 실시간 글로벌 리더보드 서열 갱신 자동화 스케줄러
+def refresh_global_leaderboard():
+    board = []
+    for uid, data in global_server["global_user_db"].items():
+        tier, col = calculate_lol_tier(data["points"])
+        wr = (data["win_matches"] / data["total_matches"] * 100) if data["total_matches"] > 0 else 0.0
+        board.append({
+            "rank": tier, "name": data["nickname"], "points": f"{data['points']:,} P", "win_rate": f"{wr:.1f}%", "color": col, "raw_pts": data["points"]
+        })
+    # 포인트 높은 순으로 정렬 정렬
+    board = sorted(board, key=lambda x: x["raw_pts"], reverse=True)
+    global_server["leaderboard"] = board[:5] # 상위 5명 마킹
+
+refresh_global_leaderboard()
 
 # 🔴 AREA A: 부장님 방어막
 if is_boss_mode:
@@ -100,33 +118,57 @@ if is_boss_mode:
     st.dataframe({"Index": [1, 2], "Task": ["Next-Gen ERP 구축", "Data Pipeline v3"], "Progress": ["94.2%", "81.2%"]}, use_container_width=True)
     if st.button("🔄 시스템 세션 새로고침"): st.query_params["boss_mode"] = "false"; st.rerun()
 
-# 익명 웰컴 패널 게이트웨이
+# 익명 웰컴 패널 게이트웨이 (계정 동기화 통합)
 elif st.session_state["user_login_data"] is None:
     st.markdown("""
         <div style="text-align: center; margin-top: 60px;">
             <h1 style="color: #A3E635; font-size: 42px; font-weight: 900; letter-spacing: -2px; text-shadow: 0 0 15px rgba(163,230,53,0.6); margin-bottom: 5px;">
                 ⚡ FROG ARENA TERMINAL
             </h1>
-            <p style="color: #22D3EE; font-size: 13px; font-weight: bold; letter-spacing: 2px;">정산 패치 완료 버전 아레나 터미널에 로그인하십시오.</p>
+            <p style="color: #22D3EE; font-size: 13px; font-weight: bold; letter-spacing: 2px;">새로고침 전적 보존형 클라우드 데이터 링크 동기화 터미널</p>
         </div>
     """, unsafe_allow_html=True)
     
     with st.container(border=True):
-        st.markdown("<h3 style='color:#FFFFFF; font-size:16px; font-weight:bold; border-bottom:1px solid #334155; padding-bottom:8px;'>🎮 파이터 라이선스 링크</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='color:#FFFFFF; font-size:16px; font-weight:bold; border-bottom:1px solid #334155; padding-bottom:8px;'>🎮 파이터 라이선스 식별 링크</h3>", unsafe_allow_html=True)
         login_nick = st.text_input("👤 콜사인 익명 닉네임 설정", placeholder="예: 반대로만사는대리")
         login_birth = st.text_input("🎂 세션 동기화 생년월일 (8자리)", placeholder="예: 19961025", max_chars=8)
         
-        if st.button("🚀 아레나 시스템 접속", use_container_width=True):
+        if st.button("🚀 아레나 데이터 동기화 및 접속", use_container_width=True):
             if not login_nick or len(login_birth) < 8:
                 st.error("🚨 전장 식별코드(닉네임/생년월일)가 유효하지 않습니다!")
             else:
-                st.session_state["user_login_data"] = {"nickname": login_nick, "birth": login_birth}
-                st.session_state["my_arena_profile"] = {
-                    "voted_hours": {}, "processed_hours": [], "nickname": login_nick,
-                    "points": 1000, "total_matches": 0, "win_matches": 0, "title": "🥈 SILVER",
-                    "active_medal": "🌱 응애 파이터", "roulette_count": 0, "roulette_date": ""
-                }
-                st.toast(f"⚡ 룰렛 무선 디버깅 프로토콜 가동.", icon="⚡")
+                account_key = f"{login_nick}_{login_birth}"
+                st.session_state["user_login_data"] = account_key
+                
+                # 🛠️ [영속성 계정 핵심 체크 기믹] 전역 DB 조회 분기
+                if account_key in global_server["global_user_db"]:
+                    # 기존 회원 복구 복구 프로토콜
+                    saved_data = global_server["global_user_db"][account_key]
+                    st.session_state["my_arena_profile"] = {
+                        "voted_hours": saved_data.get("voted_hours", {}),
+                        "processed_hours": saved_data.get("processed_hours", []),
+                        "nickname": saved_data["nickname"],
+                        "points": saved_data["points"],
+                        "total_matches": saved_data["total_matches"],
+                        "win_matches": saved_data["win_matches"],
+                        "title": calculate_lol_tier(saved_data["points"])[0],
+                        "active_medal": saved_data.get("active_medal", "🌱 응애 파이터"),
+                        "roulette_count": saved_data.get("roulette_count", 0),
+                        "roulette_date": saved_data.get("roulette_date", "")
+                    }
+                    st.toast(f"🔄 파이터 [{login_nick}] 복구 완료! 이전 전적과 자산을 불러왔습니다.", icon="🚀")
+                else:
+                    # 신규 파이터 신규 신설 프로토콜
+                    st.session_state["my_arena_profile"] = {
+                        "voted_hours": {}, "processed_hours": [], "nickname": login_nick,
+                        "points": 1000, "total_matches": 0, "win_matches": 0, "title": "🥈 SILVER",
+                        "active_medal": "🌱 응애 파이터", "roulette_count": 0, "roulette_date": ""
+                    }
+                    save_to_global_user_db(account_key, st.session_state["my_arena_profile"])
+                    st.toast(f"✨ 신규 파이터 [{login_nick}] 전역 라이선스 등록 완료.", icon="✨")
+                
+                refresh_global_leaderboard()
                 st.rerun()
 
 # 정식 청개구리 아레나 가동
@@ -136,18 +178,8 @@ else:
         "현대차": "005380.KS", "LG에너지솔루션": "373220.KS", "삼성바이오로직스": "207940.KS",
         "셀트리온": "068270.KS"
     }
-
-    # 최상단 네온 간판 헤더
-    st.markdown("""
-        <div style="background: linear-gradient(90deg, #1E1B4B 0%, #0F172A 100%); padding: 20px; border-radius: 12px; border: 2px solid #A3E635; box-shadow: 0 0 20px rgba(163,230,53,0.2); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
-            <div>
-                <h1 style="color: #A3E635; font-size: 36px; font-weight: 900; margin: 0; letter-spacing: -2px; text-shadow: 0 0 10px rgba(163,230,53,0.4);">
-                    ⚡ FROG INDEX ARENA
-                </h1>
-                <p style="font-size: 11px; color: #38BDF8; margin: 4px 0 0 0; font-weight: bold; letter-spacing: 1px;">⚙️ REAL-TIME FIXED MACRO SEAMLESS ENGINE v3.7</p>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
+    
+    my_account_id = st.session_state["user_login_data"]
 
     @st.cache_data(ttl=600)
     def fetch_market_10min_macro_prices():
@@ -206,10 +238,7 @@ else:
     prev_hour = current_hour if block_start_min >= 10 else (current_hour - 1) % 24
     past_macro_id = f"{kst_now.strftime('%Y%m%d')}_{prev_hour}_{prev_block_min}"
 
-    if "voted_hours" not in profile: profile["voted_hours"] = {}
-    if "processed_hours" not in profile: profile["processed_hours"] = []
-
-    # 10분 자동 누적 정산 엔진
+    # 10분 자동 누적 정산 엔진 (전역 DB 세이브 결합 결합)
     if past_macro_id not in profile["processed_hours"]:
         has_any_settle = False
         was_past_burst = global_server["burst_match_status"].get(past_macro_id, False)
@@ -233,6 +262,9 @@ else:
                 has_any_settle = True
         if has_any_settle or minute_offset > 0:
             profile["processed_hours"].append(past_macro_id)
+            # 💾 정산 변경사항 전역 디비 자동 세이브 세이브
+            save_to_global_user_db(my_account_id, profile)
+            refresh_global_leaderboard()
 
     my_tier_title, my_tier_color = calculate_lol_tier(profile["points"])
     profile["title"] = my_tier_title
@@ -242,7 +274,7 @@ else:
         st.markdown(f"""<div style="background-color: #7F1D1D; border: 2px solid #EF4444; padding: 10px 15px; border-radius: 8px; font-size: 13px; font-weight: bold; color: #FCA5A5; text-align: center; margin-bottom: 15px;">📢 [아레나 선동 무전] {global_server['loudsheet_announcement']}</div>""", unsafe_allow_html=True)
 
     # 좌우 구조 분할 레이아웃
-    main_layout, chat_layout = st.columns([2.3, 1.0], gap="medium")
+    main_layout, chat_layout = st.columns([2.2, 1.1], gap="medium")
 
     # ==================== [LEFT SIDE] 메인 아레나 플레이 구역 ====================
     with main_layout:
@@ -254,7 +286,7 @@ else:
             st.markdown(f"""
                 <div style="background: linear-gradient(135deg, #0B0F19 0%, #030712 100%); border: 2px solid {my_tier_color}; box-shadow: 0 0 15px {my_tier_color}40; padding: 20px; border-radius: 10px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <span style="font-size: 11px; color: #64748B; font-weight: bold; letter-spacing: 1px;">👤 PILOT PROFILE [훈장 태그: {current_tag_medal}]</span>
+                        <span style="font-size: 11px; color: #64748B; font-weight: bold; letter-spacing: 1px;">👤 PILOT PROFILE [전역 클라우드 서버 동기화 계정]</span>
                         <h3 style="margin: 3px 0 0 0; color: #FFFFFF; font-size: 22px; font-weight: 800;"><span style='color:#A3E635; font-size:15px;'>[{current_tag_medal}]</span> {profile['nickname']}</h3>
                         <span style="display:inline-block; background-color:{my_tier_color}15; color:{my_tier_color}; padding:2px 10px; border-radius:4px; font-size:11px; font-weight:900; border:1px solid {my_tier_color}50; margin-top:5px;">{my_tier_title}</span>
                     </div>
@@ -278,7 +310,7 @@ else:
                 st.markdown("""<div style="background-color: #1E1B4B; border: 2px dashed #A78BFA; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 20px;"><h4 style="margin: 0; color: #F59E0B; font-weight: 900; font-size: 18px;">🚨 WARNING: 시드 자산 오링 고갈 상태</h4></div>""", unsafe_allow_html=True)
                 if st.button("🎡 구조대 룰렛 돌리기 (500원 결제 후 시드 무작위 즉시 구호 복구)", type="primary", use_container_width=True):
                     bonus_p = random.choice([500, 1000, 2500, 5000])
-                    profile["points"] += bonus_p; st.rerun()
+                    profile["points"] += bonus_p; save_to_global_user_db(my_account_id, profile); st.rerun()
 
             st.markdown(f"##### ⚔️ 정시 매크로 리그: {block_start_min:02d}분 시세 ➡️ {target_display_time} 마감 예측")
             
@@ -298,27 +330,28 @@ else:
                     c_b1, c_b2, c_b3 = st.columns([1.0, 1.0, 1.2])
                     with c_b1:
                         if st.button(f"▲ 상승 ({up_div})", key=f"up_{stock_name}", use_container_width=True, disabled=button_disabled):
-                            profile["points"] -= 100; global_server["current_match_votes"][stock_name]["UP"] += 1; profile["voted_hours"][unique_macro_user_vote_key] = "UP"; profile["total_matches"] += 1; st.rerun()
+                            profile["points"] -= 100; global_server["current_match_votes"][stock_name]["UP"] += 1; profile["voted_hours"][unique_macro_user_vote_key] = "UP"; profile["total_matches"] += 1; save_to_global_user_db(my_account_id, profile); st.rerun()
                     with c_b2:
                         if st.button(f"▼ 하락 ({down_div})", key=f"down_{stock_name}", use_container_width=True, disabled=button_disabled):
-                            profile["points"] -= 100; global_server["current_match_votes"][stock_name]["DOWN"] += 1; profile["voted_hours"][unique_macro_user_vote_key] = "DOWN"; profile["total_matches"] += 1; st.rerun()
+                            profile["points"] -= 100; global_server["current_match_votes"][stock_name]["DOWN"] += 1; profile["voted_hours"][unique_macro_user_vote_key] = "DOWN"; profile["total_matches"] += 1; save_to_global_user_db(my_account_id, profile); st.rerun()
                     with c_b3:
                         reverse_disabled = button_disabled or profile["points"] < 300 or (up_cnt == down_cnt)
                         if st.button(f"🔮 인간지표 리버스 (300P)", key=f"rev_{stock_name}", use_container_width=True, disabled=reverse_disabled):
                             profile["points"] -= 300
                             target_dir = "DOWN" if up_cnt > down_cnt else "UP"
-                            global_server["current_match_votes"][stock_name][target_dir] += 3; profile["voted_hours"][unique_macro_user_vote_key] = target_dir; profile["total_matches"] += 1; st.rerun()
+                            global_server["current_match_votes"][stock_name][target_dir] += 3; profile["voted_hours"][unique_macro_user_vote_key] = target_dir; profile["total_matches"] += 1; save_to_global_user_db(my_account_id, profile); st.rerun()
                     
                     total_votes = votes["UP"] + votes["DOWN"]
                     if total_votes > 0: st.progress(int((votes["UP"] / total_votes) * 100))
 
-        # 탭 2: 실시간 서열판
+        # 탭 2: 실시간 실시간 통합 서열판
         with tab2:
-            st.markdown("### 🏆 글로벌 아레나 랭크 디비전 서열")
-            for user in global_server["leaderboard"]:
-                st.markdown(f"""<div style="display: flex; justify-content: space-between; align-items: center; border: 1px solid #1E293B; padding: 12px 20px; border-radius: 6px; background-color: #090D16; margin-bottom: 6px;"><div style="font-size: 13px; font-weight: 900; color: {user['color']}; width: 130px;">{user['rank']}</div><div style="font-size: 14px; font-weight: 500; color: #FFFFFF; flex: 1;">{user['name']}</div><div style="font-size: 13px; color: #22D3EE; width: 120px; text-align: center; font-weight:bold;">{user['points']}</div><div style="font-size: 13px; color: #81C995; width: 100px; text-align: right; font-weight:bold;">{user['win_rate']}</div></div>""", unsafe_allow_html=True)
+            st.markdown("### 🏆 클라우드 서버 통합 실시간 랭킹 서열")
+            st.caption("새로고침을 한 모든 유저들의 누적 스코어가 연동되어 최상위 탑5 서열이 실시간 출력됩니다.")
+            for idx, user in enumerate(global_server["leaderboard"]):
+                st.markdown(f"""<div style="display: flex; justify-content: space-between; align-items: center; border: 1px solid #1E293B; padding: 12px 20px; border-radius: 6px; background-color: #090D16; margin-bottom: 6px;"><div style="font-size: 13px; font-weight: 900; color: {user['color']}; width: 150px;">NO.{idx+1} {user['rank']}</div><div style="font-size: 14px; font-weight: 500; color: #FFFFFF; flex: 1;">{user['name']} 파이터</div><div style="font-size: 13px; color: #22D3EE; width: 120px; text-align: center; font-weight:bold;">{user['points']}</div><div style="font-size: 13px; color: #81C995; width: 100px; text-align: right; font-weight:bold;">{user['win_rate']}</div></div>""", unsafe_allow_html=True)
 
-        # 🎰 [탭 3] 무한 락 버근 완치 완료된 하이퍼 캔버스 룰렛 패널 구역
+        # 탭 3: 애니메이션 룰렛 (전역 DB 세이브 가산 연동)
         with tab3:
             st.markdown("### 🎰 네온 서클 인터랙티브 룰렛")
             st.caption("10 P를 소모하여 돌림판을 회전시킵니다. 물리 마찰 연출 종료 후 보상이 다이렉트로 지급됩니다.")
@@ -332,18 +365,18 @@ else:
             current_done_count = profile.get("roulette_count", 0)
             remained_chances = 5 - current_done_count
             
-            # 🛠️ [버그 완치 솔루션 코어] 보안성이 높은 안정적인 쿼리 스트림 파싱 브릿지 개설
             reward_catcher = st.query_params.get("rw", None)
             if reward_catcher is not None:
                 reward_amt = int(reward_catcher)
                 
-                # 🛠️ [요청 피드백 반영] 자바스크립트가 끝나면 백엔드에서 포인트 차감(-10 P)과 일일 횟수 차감(+1회)을 오차 없이 정산 집계!
                 profile["points"] -= 10
                 profile["points"] += reward_amt
                 profile["roulette_count"] += 1
                 
-                # 중복 지급 및 락 폭발 현상을 완벽 차단하기 위해 주소창 잔여 증거 인멸 청소
                 st.query_params.clear() 
+                # 💾 전역 유저 데이터 클라우드 동기화 세이브
+                save_to_global_user_db(my_account_id, profile)
+                refresh_global_leaderboard()
                 
                 if reward_amt == 100: st.success("👑 [대박 잭팟!!] 돌림판 바늘이 정확히 +100 P 자리에 멈췄습니다!")
                 elif reward_amt == 30: st.info("🔮 [중박 당첨!] 보너스 시드 +30 P가 충전되었습니다.")
@@ -354,23 +387,17 @@ else:
             c_r1, c_r2 = st.columns([0.8, 1.5])
             with c_r1:
                 st.metric("📋 오늘 남은 기회", f"{remained_chances} / 5 회")
-                if remained_chances <= 0:
-                    st.error("🔒 오늘 제공된 5번의 돌림판 기회를 모두 소진하셨습니다. 내일 다시 리셋됩니다.")
-                elif profile["points"] < 10:
-                    st.error("🚨 최소 가동 칩(10 P)이 부족합니다.")
+                if remained_chances <= 0: st.error("🔒 오늘 제공된 5번의 돌림판 기회를 모두 소진하셨습니다.")
+                elif profile["points"] < 10: st.error("🚨 최소 가동 칩(10 P)이 부족합니다.")
             
             with c_r2:
-                # 잔여 기회가 있고 포인트가 있을 때만 자바스크립트 물리 캔버스를 화면에 가동
                 if remained_chances > 0 and profile["points"] >= 10:
-                    # 가중치 난수를 사전에 백엔드에서 생성해 자바스크립트에 각도로 주입 (임의 변조 원천 차단)
                     spin_choice = random.choices([100, 30, 10, 0], weights=[10, 25, 40, 25], k=1)[0]
-                    
                     if spin_choice == 0: target_angle = random.randint(15, 75)
                     elif spin_choice == 10: target_angle = random.randint(105, 165)
                     elif spin_choice == 30: target_angle = random.randint(195, 255)
                     else: target_angle = random.randint(285, 345)
 
-                    # 🛠️ [버그 완치 솔루션] window.parent 포트 충돌 우회를 위한 새로운 다이렉트 프론트엔드 통신 로직 수립
                     html_roulette_code = f"""
                     <div style="text-align: center; font-family: sans-serif; background-color:#020617; padding:15px; border-radius:8px;">
                         <canvas id="wheel" width="260" height="260" style="border: 3px solid #1E293B; border-radius: 50%; box-shadow: 0 0 15px rgba(34,211,238,0.2);"></canvas>
@@ -410,8 +437,6 @@ else:
                                 ctx.fillText(labels[i], 115, 4);
                                 ctx.restore();
                             }}
-                            
-                            // 바늘 상단 고정 매칭
                             ctx.beginPath();
                             ctx.moveTo(130, 2);
                             ctx.lineTo(123, 20);
@@ -426,7 +451,6 @@ else:
                         spinBtn.addEventListener('click', () => {{
                             spinBtn.disabled = true;
                             spinBtn.style.opacity = '0.5';
-                            spinBtn.style.cursor = 'not-allowed';
                             spinBtn.innerText = '🌀 슬롯 휠 감속 회전 중...';
                             
                             let startTimestamp = null;
@@ -439,18 +463,14 @@ else:
                                 if (!startTimestamp) startTimestamp = timestamp;
                                 const elapsed = timestamp - startTimestamp;
                                 const progress = Math.min(elapsed / spinDuration, 1);
-                                
                                 const easeOut = 1 - Math.pow(1 - progress, 3);
                                 const angleRad = (totalRotationAngle * easeOut) * Math.PI / 180;
-                                
                                 currentAngle = angleRad;
                                 ctx.clearRect(0,0,260,260);
                                 drawWheel();
-                                
                                 if (progress < 1) {{
                                     window.requestAnimationFrame(animate);
                                 }} else {{
-                                    // 🛠️ [핵심 버그 완치 포인트] 락업 폭발 우회를 위한 임베디드 다이렉트 해시 라우팅 연동 체계 가동
                                     const currUrl = new URL(window.location.href);
                                     currUrl.searchParams.set('rw', '{spin_choice}');
                                     window.location.href = currUrl.href;
@@ -461,14 +481,11 @@ else:
                     </script>
                     """
                     components.html(html_roulette_code, height=340)
-                else:
-                    st.caption("🔒 오늘 가용 자산이 모자라거나 슬롯 기회가 만료되었습니다.")
 
-    # ==================== [RIGHT SIDE] 우측 고정 교신방 및 명예 업적 태그 보관소 탭 구역 ====================
+# ==================== [RIGHT SIDE] 우측 고정 교신방 및 명예 업적 태그 보관소 탭 구역 ====================
     with chat_layout:
         chat_tab, shop_tab = st.tabs(["💬 오픈 교신방", "🏅 명예 훈장 보관소"])
         
-        # 탭 1: 대화방
         with chat_tab:
             st.markdown("<p style='font-size:11px; color:#A3E635; margin:0;'>🟢 LIVE CHAT PROTOCOL ACTIVE</p>", unsafe_allow_html=True)
             chat_container = st.container(height=380)
@@ -484,10 +501,9 @@ else:
                 global_server["global_chat_stream"].append({"name": styled_name, "text": user_live_input})
                 st.rerun()
 
-        # 탭 2: 훈장 보관소 및 아이템 숍
         with shop_tab:
             st.markdown("### 🏛️ 내 실시간 명예 업적 전시장")
-            my_earned_list = get_earned_medals(profile)
+            my_earned_list = get_earned_medals(profile["points"], profile["win_matches"])
             medals_manifest = [
                 {"id": "🌱 응애 파이터", "condition": "가입 시 즉시 획득 기본 태그", "style_color": "#94A3B8"},
                 {"id": "🎯 족집게 도사", "condition": "누적 5회 이상 예측 적중 시 언락", "style_color": "#34D399"},
@@ -502,7 +518,8 @@ else:
                             st.button("🟢 현재 프로필 장착 중", key=f"active_{m['id']}", disabled=True, use_container_width=True)
                         else:
                             if st.button("🏷️ 이 훈장 닉네임 옆에 달기", key=f"wear_{m['id']}", use_container_width=True):
-                                profile["active_medal"] = m["id"]; st.rerun()
+                                profile["active_medal"] = m["id"]
+                                save_to_global_user_db(my_account_id, profile); st.rerun()
                     else:
                         st.markdown(f"<b style='color:#475569; font-size:14px;'>🔒 {m['id']} (잠김)</b>", unsafe_allow_html=True)
                         st.caption(f"조건: {m['condition']}")
