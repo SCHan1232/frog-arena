@@ -6,7 +6,7 @@ import yfinance as yf
 
 # 1. 사이버펑크 아레나 초호화 다크 테마 설정
 st.set_page_config(
-    page_title="⚡ 청개구리 인덱스 - 사이버펑크 아레나 v2.2", 
+    page_title="⚡ 청개구리 인덱스 - 10분 아레나 v2.3", 
     page_icon="⚡",
     layout="wide"
 )
@@ -46,7 +46,7 @@ def get_global_server_data_hub():
             "셀트리온": {"UP": 0, "DOWN": 0}
         },
         "global_chat_stream": [
-            {"name": "[CHALLENGER] 운영진_🐸", "text": "⚡ 사이버펑크 배팅 아레나 엔진 가동 완료. 7대 대장주 오프닝 매치 시작!"}
+            {"name": "[CHALLENGER] 운영진_🐸", "text": "⚡ 10분 스피드 아레나 가동! 각 라운드 초반 1분간의 초고속 배팅 페이즈가 열립니다."}
         ],
         "leaderboard": [
             {"rank": "👑 CHALLENGER", "name": "여의도작두가리가리", "points": "6,450 P", "win_rate": "84.2%", "color": "#FBBF24"},
@@ -90,14 +90,14 @@ if is_boss_mode:
     st.dataframe({"Index": [1, 2], "Task": ["Next-Gen ERP 구축", "Data Pipeline v3"], "Progress": ["94.2%", "81.2%"]}, use_container_width=True)
     if st.button("🔄 시스템 세션 새로고침"): st.query_params["boss_mode"] = "false"; st.rerun()
 
-# 익명 웰컴 패널 게이트웨이 (사이버펑크 게이밍 인트로 개조)
+# 익명 웰컴 패널 게이트웨이
 elif st.session_state["user_login_data"] is None:
     st.markdown("""
         <div style="text-align: center; margin-top: 60px;">
             <h1 style="color: #A3E635; font-size: 42px; font-weight: 900; letter-spacing: -2px; text-shadow: 0 0 15px rgba(163,230,53,0.6); margin-bottom: 5px;">
                 ⚡ FROG ARENA TERMINAL
             </h1>
-            <p style="color: #22D3EE; font-size: 13px; font-weight: bold; letter-spacing: 2px;">인간 지표 서열 레이스에 로그인하십시오.</p>
+            <p style="color: #22D3EE; font-size: 13px; font-weight: bold; letter-spacing: 2px;">10분 라이브 무한 서열 아레나에 로그인하십시오.</p>
         </div>
     """, unsafe_allow_html=True)
     
@@ -119,10 +119,10 @@ elif st.session_state["user_login_data"] is None:
                     "win_matches": 0,
                     "title": "🥈 SILVER"
                 }
-                st.toast(f"⚡ 접속 완료. Welcome, 파이터 {login_nick}.", icon="⚡")
+                st.toast(f"⚡ 무한 10분 아레나 접속 완료. 파이터 {login_nick} 대기.", icon="⚡")
                 st.rerun()
 
-# 정식 청개구리 아레나 가동 (사이버펑크 UI 메인스트림)
+# 정식 청개구리 아레나 가동 (10분 주기 시스템)
 else:
     STOCK_TICKER_MAP = {
         "SK하이닉스 (000660.KS)": "000660.KS",
@@ -141,17 +141,17 @@ else:
                 <h1 style="color: #A3E635; font-size: 36px; font-weight: 900; margin: 0; letter-spacing: -2px; text-shadow: 0 0 10px rgba(163,230,53,0.4);">
                     ⚡ FROG INDEX ARENA
                 </h1>
-                <p style="font-size: 11px; color: #38BDF8; margin: 4px 0 0 0; font-weight: bold; letter-spacing: 1px;">⚙️ REAL-TIME HUMAN INDICATOR TOURNAMENT ENGINE v2.2</p>
+                <p style="font-size: 11px; color: #38BDF8; margin: 4px 0 0 0; font-weight: bold; letter-spacing: 1px;">⏱️ 10-MIN INFINITE RELAY TOURNAMENT MODE v2.3</p>
             </div>
-            <div style="background-color: #020617; border: 1px solid #38BDF8; padding: 6px 15px; border-radius: 20px; font-size: 11px; color: #38BDF8; font-weight: bold; box-shadow: 0 0 8px rgba(56,189,248,0.3);">
-                📡 API 무선 프로토콜 양호
+            <div style="background-color: #020617; border: 1px solid #38BDF8; padding: 6px 15px; border-radius: 20px; font-size: 11px; color: #38BDF8; font-weight: bold;">
+                ⏳ 10분 단위 자동 주가 갱신 중
             </div>
         </div>
     """, unsafe_allow_html=True)
 
-    # 마켓 실시간 데이터 전광판 바
-    @st.cache_data(ttl=30)
-    def fetch_market_realtime_prices():
+    # 🛠️ [요청 피드백] 야후파이낸스 데이터를 10분(600초) 단위로 정밀 캐싱 동기화
+    @st.cache_data(ttl=600)
+    def fetch_market_10min_prices():
         ticker_strings = []
         live_prices_dict = {}
         for name, tk in STOCK_TICKER_MAP.items():
@@ -160,7 +160,7 @@ else:
                 t_data = yf.Ticker(tk).history(period="1d")
                 if not t_data.empty:
                     current_live_price = t_data['Close'].iloc[-1]
-                    ticker_strings.append(f"<span style='color: #FFFFFF; font-weight: bold;'>{clean_name}</span> <span style='color: #22D3EE; text-shadow: 0 0 5px rgba(34,211,238,0.4);'>{int(current_live_price):,}원</span>")
+                    ticker_strings.append(f"<span style='color: #FFFFFF; font-weight: bold;'>{clean_name}</span> <span style='color: #22D3EE;'>{int(current_live_price):,}원</span>")
                     live_prices_dict[clean_name] = current_live_price
                 else:
                     live_prices_dict[clean_name] = 0
@@ -170,22 +170,33 @@ else:
                 ticker_strings.append(f"<span style='color: #EF4444;'>{clean_name} 오류</span>")
         return " &nbsp;&nbsp; 🔴 &nbsp;&nbsp; ".join(ticker_strings), live_prices_dict
 
-    live_ticker_html, actual_live_prices = fetch_market_realtime_prices()
+    live_ticker_html, actual_live_prices = fetch_market_10min_prices()
     
     st.markdown(f"""
-        <div style="background-color: #020617; padding: 8px 15px; border-radius: 6px; border: 1px solid #1E293B; font-size: 11px; margin-bottom: 20px; white-space: nowrap; overflow-x: auto; box-shadow: inset 0 0 10px rgba(0,0,0,0.5);">
+        <div style="background-color: #020617; padding: 8px 15px; border-radius: 6px; border: 1px solid #1E293B; font-size: 11px; margin-bottom: 20px; white-space: nowrap; overflow-x: auto;">
             {live_ticker_html}
         </div>
     """, unsafe_allow_html=True)
 
-    # 시차 교정 (한국 표준시 동기화)
+    # 시차 교정 (한국 표준시 동기화) 및 10분 통제기 코어 가동
     server_utc = datetime.datetime.utcnow()
     kst_now = server_utc + datetime.timedelta(hours=9)
     current_hour = kst_now.hour
     current_minute = kst_now.minute
+    current_second = kst_now.second
     
-    is_voting_window = 0 <= current_minute < 5
-    target_prediction_hour = (current_hour + 1) % 24
+    # 🛠️ [요청 피드백] 10분 주기의 '초반 1분 미만' 일 때만 오픈 (예: 10분~11분, 20분~21분)
+    minute_in_block = current_minute % 10
+    is_voting_window = (minute_in_block == 0) # 0분층에 해당하는 60초간만 참(True)
+    
+    # 정산 기준이 될 다음 10분 정시 타겟 이름표 조립
+    next_block_minute = ((current_minute // 10) + 1) * 10
+    if next_block_minute >= 60:
+        target_display_time = f"{(current_hour + 1) % 24}:00"
+        match_id_string = f"{current_hour}_50_{stock_name}" if minute_in_block == 0 else f"{(current_hour + 1) % 24}_00"
+    else:
+        target_display_time = f"{current_hour}:{next_block_minute:02d}"
+        match_id_string = f"{current_hour}_{(current_minute // 10) * 10:02d}"
 
     # 내 포인트 기반 실시간 롤 티어 랭크 산출
     profile = st.session_state["my_arena_profile"]
@@ -198,35 +209,46 @@ else:
 
     # ==================== [LEFT SIDE] 메인 아레나 플레이 구역 ====================
     with main_layout:
-        tab1, tab2 = st.tabs(["🎮 사이버 배팅 터미널", "🏆 실시간 아레나 서열판"])
+        tab1, tab2 = st.tabs(["🎮 10분 초고속 터미널", "🏆 실시간 아레나 서열판"])
         
-        # TAB 1: 배팅 터미널
+        # TAB 1: 배팅 터미널 구역
         with tab1:
-            # 🛠️ [1번 피드백 네온 테두리 박스 완성] 내 대시보드를 화려한 티어 컬러 네온 보더 효과로 렌더링
+            # 내 프로필 대시보드 박스
             st.markdown(f"""
                 <div style="background: linear-gradient(135deg, #0B0F19 0%, #030712 100%); border: 2px solid {my_tier_color}; box-shadow: 0 0 15px {my_tier_color}40; padding: 20px; border-radius: 10px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <span style="font-size: 11px; color: #64748B; font-weight: bold; letter-spacing: 1px;">👤 CURRENT PILOT PROFILE</span>
+                        <span style="font-size: 11px; color: #64748B; font-weight: bold; letter-spacing: 1px;">👤 ARENA PILOT PROFILE</span>
                         <h3 style="margin: 3px 0 0 0; color: #FFFFFF; font-size: 22px; font-weight: 800;">{profile['nickname']}</h3>
-                        <span style="display:inline-block; background-color:{my_tier_color}15; color:{my_tier_color}; padding:2px 10px; border-radius:4px; font-size:11px; font-weight:900; border:1px solid {my_tier_color}50; margin-top:5px; letter-spacing:1px;">{my_tier_title}</span>
+                        <span style="display:inline-block; background-color:{my_tier_color}15; color:{my_tier_color}; padding:2px 10px; border-radius:4px; font-size:11px; font-weight:900; border:1px solid {my_tier_color}50; margin-top:5px;">{my_tier_title}</span>
                     </div>
                     <div style="text-align: right;">
-                        <span style="font-size: 11px; color: #64748B; font-weight: bold;">💰 AVAILABLE CREDIT</span>
+                        <span style="font-size: 11px; color: #64748B; font-weight: bold;">💰 MY CREDIT BALANCE</span>
                         <h2 style="margin: 0; color: #22D3EE; font-size: 24px; font-weight: 900; text-shadow: 0 0 8px rgba(34,211,238,0.3);">{profile['points']:,} P</h2>
                         <span style="font-size:12px; color:#81C995; font-weight:bold;">승률: {calc_win_rate:.1f}% ({profile['win_matches']}승/{profile['total_matches']}전)</span>
                     </div>
                 </div>
             """, unsafe_allow_html=True)
 
-            current_now_str = kst_now.strftime('%Y-%m-%d %H:%M:%S')
+            current_now_str = kst_now.strftime('%H:%M:%S')
+            
+            # 🛠️ [요청 피드백] 1분 타임어택 오픈 전광판 시각화 조립
             if is_voting_window:
-                st.markdown(f"""<div style="background-color: #064E3B; border: 1px solid #10B981; padding: 10px 15px; border-radius: 6px; color: #34D399; font-weight: bold; font-size: 13px; margin-bottom: 20px; box-shadow: 0 0 10px rgba(16,185,129,0.2);">⏱ KST 표준시: {current_now_str} | 🔓 ROUND {current_hour} 리그 배팅창 활성화! (종료 {5-current_minute}분 전)</div>""", unsafe_allow_html=True)
+                st.markdown(f"""
+                    <div style="background-color: #064E3B; border: 1px solid #10B981; padding: 12px 15px; border-radius: 6px; color: #34D399; font-weight: bold; font-size: 13.5px; margin-bottom: 20px; box-shadow: 0 0 12px rgba(16,185,129,0.3);">
+                        🔓 [OPEN] 초고속 10분 아레나 매치 활성화! (마감까지 {60 - current_second}초 남음! 지금 베팅하세요!)
+                    </div>
+                """, unsafe_allow_html=True)
             else:
-                st.markdown(f"""<div style="background-color: #7F1D1D; border: 1px solid #EF4444; padding: 10px 15px; border-radius: 6px; color: #FCA5A5; font-weight: bold; font-size: 13px; margin-bottom: 20px; box-shadow: 0 0 10px rgba(239,68,68,0.2);">⏱ KST 표준시: {current_now_str} | 🔒 ROUND {current_hour} 배팅 마감됨 ({target_prediction_hour}시 매치를 대기하십시오)</div>""", unsafe_allow_html=True)
+                st.markdown(f"""
+                    <div style="background-color: #7F1D1D; border: 1px solid #EF4444; padding: 12px 15px; border-radius: 6px; color: #FCA5A5; font-weight: bold; font-size: 13.5px; margin-bottom: 20px;">
+                        🔒 [LOCKED] 초반 1분 배팅 시간이 마감되었습니다. (현재 매치 정산 시각: {target_display_time} 대기 중)
+                    </div>
+                """, unsafe_allow_html=True)
             
-            st.markdown(f"##### ⚔️ ROUND {current_hour}:00 기점 시총 7대 대장주 라인업")
+            st.markdown(f"##### ⚔️ 10분 레이스 목표: 현재 시세 ➡️ {target_display_time} 예측 종료")
+            st.caption("※ 각 10분 주기 진입 직후 딱 1분(60초)간만 스피드 베팅을 허용합니다.")
             
-            # 🛠️ [2번 피드백 네온 블루 카드 완성] 배팅 카드 UI 구조 사이버펑크 튜닝
+            # 7대 대장주 베팅 제어 구문 루프
             for stock_name in ["SK하이닉스", "삼성전자", "한미반도체", "현대차", "LG에너지솔루션", "삼성바이오로직스", "셀트리온"]:
                 live_p = actual_live_prices.get(stock_name, 0)
                 votes = global_server["current_match_votes"][stock_name]
@@ -244,21 +266,24 @@ else:
                     up_div = "1.70x (역배)"
                     down_div = "1.30x (정배)"
 
+                # 매치 고유 식별코드 생성 (10분 주기에 맞춘 유니크키)
+                unique_match_key = f"{match_id_string}_{stock_name}"
+
                 with st.container():
                     st.markdown(f"""
                         <div style="background-color: #090D16; border-left: 4px solid #22D3EE; border-top: 1px solid #1E293B; border-right: 1px solid #1E293B; border-bottom: 1px solid #1E293B; padding: 15px; border-radius: 4px; margin-bottom: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <div>
                                     <span style="font-size: 16px; font-weight: 800; color: #FFFFFF;">{stock_name}</span>
-                                    <span style="font-size: 11px; color: #64748B; margin-left: 8px;">정각 시세: {int(live_p):,}원</span>
+                                    <span style="font-size: 11px; color: #64748B; margin-left: 8px;">기준가: {int(live_p):,}원</span>
                                 </div>
-                                <span style="font-size: 11px; color: #22D3EE; font-weight: bold; letter-spacing: 1px;">⚡ ACTIVE MATCH</span>
+                                <span style="font-size: 11px; color: #22D3EE; font-weight: bold;">⚡ 10-MIN MATCH</span>
                             </div>
                         </div>
                     """, unsafe_allow_html=True)
                     
-                    has_voted_this_hour = f"{current_hour}_{stock_name}" in profile["voted_hours"]
-                    button_disabled = (not is_voting_window) or has_voted_this_hour or profile["points"] < 100
+                    has_voted_this_block = unique_match_key in profile["voted_hours"]
+                    button_disabled = (not is_voting_window) or has_voted_this_block or profile["points"] < 100
 
                     c1, c2 = st.columns(2)
                     with c1:
@@ -266,14 +291,14 @@ else:
                             profile["points"] -= 100
                             is_up_jeong = up_cnt >= down_cnt if (up_cnt != down_cnt) else None
                             global_server["current_match_votes"][stock_name]["UP"] += 1
-                            profile["voted_hours"].append(f"{current_hour}_{stock_name}")
+                            profile["voted_hours"].append(unique_match_key)
                             profile["total_matches"] += 1
                             
                             if random.choice([True, False]): 
                                 profile["win_matches"] += 1
                                 reward = 130 if is_up_jeong is True else (170 if is_up_jeong is False else 150)
                                 profile["points"] += reward
-                                st.toast(f"🎯 매치 적중 완료! {reward} P 회복 성공.", icon="🚀")
+                                st.toast(f"🎯 10분 매치 즉시 적중! {reward} P 획득 완료.", icon="🚀")
                             else: 
                                 st.toast("📉 예측 실패! 시드가 청산되었습니다.", icon="💥")
                             st.rerun()
@@ -283,14 +308,14 @@ else:
                             profile["points"] -= 100
                             is_down_jeong = down_cnt >= up_cnt if (up_cnt != down_cnt) else None
                             global_server["current_match_votes"][stock_name]["DOWN"] += 1
-                            profile["voted_hours"].append(f"{current_hour}_{stock_name}")
+                            profile["voted_hours"].append(unique_match_key)
                             profile["total_matches"] += 1
                             
                             if random.choice([True, False]):
                                 profile["win_matches"] += 1
                                 reward = 130 if is_down_jeong is True else (170 if is_down_jeong is False else 150)
                                 profile["points"] += reward
-                                st.toast(f"🎯 매치 적중 완료! {reward} P 회복 성공.", icon="🚀")
+                                st.toast(f"🎯 10분 매치 즉시 적중! {reward} P 획득 완료.", icon="🚀")
                             else:
                                 st.toast("📉 예측 실패! 시드가 청산되었습니다.", icon="💥")
                             st.rerun()
@@ -299,17 +324,16 @@ else:
                     if total_votes > 0:
                         up_per = (votes["UP"] / total_votes) * 100
                         st.progress(int(up_per))
-                        st.markdown(f"<p style='font-size:11px; color:#94A3B8; margin-top:2px; margin-bottom:15px;'>📊 실시간 배팅 도표: 상승 ▲ {up_per:.1f}% | 하락 ▼ {100-up_per:.1f}% (참여 {total_votes}명)</p>", unsafe_allow_html=True)
+                        st.markdown(f"<p style='font-size:11px; color:#94A3B8; margin-top:2px; margin-bottom:15px;'>📊 베팅 비율: 상승 ▲ {up_per:.1f}% | 하락 ▼ {100-up_per:.1f}% (현 회차 참여 {total_votes}명)</p>", unsafe_allow_html=True)
                     else:
-                        st.markdown("<p style='font-size:11px; color:#475569; margin-top:2px; margin-bottom:15px;'>📊 현재 배팅 대기 중 (1.50x 동배당 상태)</p>", unsafe_allow_html=True)
+                        st.markdown("<p style='font-size:11px; color:#475569; margin-top:2px; margin-bottom:15px;'>📊 현재 배팅 균형 상태 (1.50x 동배당 적용)</p>", unsafe_allow_html=True)
 
         # TAB 2: 글로벌 롤 티어 서열 보드
         with tab2:
             st.markdown("### 🏆 글로벌 아레나 랭크 디비전 서열")
-            st.caption("포인트 레이팅 스코어 기준 롤 방식 8대 티어가 하이 테크놀로지 보드에 실시간 정렬됩니다.")
+            st.caption("스코어 스펙 기준 롤 방식 8대 티어가 하이 테크놀로지 보드에 실시간 정렬됩니다.")
             st.write("")
             
-            # 내 프로필 랭크 하이라이트 박스
             st.markdown(f"""
                 <div style="background: linear-gradient(90deg, #1E1B4B 0%, #030712 100%); border: 2px solid {my_tier_color}; box-shadow: 0 0 10px {my_tier_color}30; padding: 12px 20px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <span style="font-size:13px; font-weight:900; color:{my_tier_color}; width:130px;">{my_tier_title}</span>
@@ -319,7 +343,6 @@ else:
                 </div>
             """, unsafe_allow_html=True)
 
-            # 명예의 전당 루프 출력
             for user in global_server["leaderboard"]:
                 st.markdown(f"""
                     <div style="display: flex; justify-content: space-between; align-items: center; border: 1px solid #1E293B; padding: 12px 20px; border-radius: 6px; background-color: #090D16; margin-bottom: 6px;">
@@ -341,19 +364,16 @@ else:
             real_active_users = 1
             
         st.markdown(f"<h3 style='margin-top:23px; font-size:15px; color:#FFFFFF;'>💬 실시간 교신 넷 <span style='font-size:11px; color:#A3E635; font-weight:normal;'>🟢 LIVE: {real_active_users}</span></h3>", unsafe_allow_html=True)
-        st.markdown(f"<div style='background-color:#0F172A; padding:4px 10px; border-radius:4px; font-size:11px; border:1px solid {my_tier_color}50; color:{my_tier_color}; font-weight:900; letter-spacing:1px; text-align:center;'>CURRENT DIVISION: {my_tier_title}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='background-color:#0F172A; padding:4px 10px; border-radius:4px; font-size:11px; border:1px solid {my_tier_color}50; color:{my_tier_color}; font-weight:900; text-align:center;'>MY RANK: {my_tier_title}</div>", unsafe_allow_html=True)
 
-        # 🛠️ [3번 피드백 뱃지 구현] 오픈방 메시지 표시 영역
         chat_container = st.container(height=360)
         with chat_container:
             for msg in global_server["global_chat_stream"]:
                 with st.chat_message("user", avatar="⚡"):
-                    # 롤 티어 엠블럼 뱃지가 붙은 이름표 출력
                     st.markdown(f"<span style='font-size:13px; font-weight:bold;'>{msg['name']}</span>", unsafe_allow_html=True)
                     st.write(msg["text"])
 
         if user_live_input := st.chat_input("교신 패킷 전송..."):
-            # 🛠️ [3번 피드백 뱃지 구현] 유저가 대화할 때 이름 명단 앞에 롤 티어를 이니셜 뱃지 형태로 강제 조립해 주입
             tier_badge = my_tier_title.split(" ")[0]
             colored_name = f"<span style='color:{my_tier_color}; font-weight:bold;'>[{tier_badge}]</span> {profile['nickname']}"
             
@@ -369,7 +389,7 @@ else:
         st.markdown("""
             <div style="background-color: #1E1B4B; border: 1px dashed #FF8DA1; padding: 12px; border-radius: 6px; margin-bottom: 8px; text-align: center;">
                 <p style="margin: 0; font-size: 11px; color: #FFB3C1; line-height: 1.4;">
-                    🐸: "1시간마다 7대 대장주 API 트래픽을 정밀 체결해오느라 서버 올챙이국수 시드가 바닥났어요... 1,000원 후원해 주시면 더 화려한 이펙트로 보답할게요!"
+                    🐸: "10분 간격 하이퍼 매치 데이터를 당기느라 서버가 탈탈 털리고 있어요! 1,000원씩 보태주시면 해외 소형 작전주 배팅장도 개발해올게요!"
                 </p>
             </div>
         """, unsafe_allow_html=True)
@@ -379,7 +399,7 @@ else:
         st.write("---")
         st.markdown("<h4 style='font-size:12px; color:#64748B;'>🤫 데이터 허브 건의 패널</h4>", unsafe_allow_html=True)
         with st.form("suggest_form", clear_on_submit=True):
-            s_input = st.text_input("📝 건의할 기능/종목", placeholder="예: 해외 주식도 추가 요망", label_visibility="collapsed")
+            s_input = st.text_input("📝 건의할 기능/종목", placeholder="예: 코스닥 레버리지도 추가 원함", label_visibility="collapsed")
             s_submit = st.form_submit_button("🔒 서버 백엔드로 전송")
             if s_submit and s_input:
                 cur_t = datetime.datetime.now().strftime("%H:%M")
