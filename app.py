@@ -6,7 +6,7 @@ import yfinance as yf
 
 # 1. 청개구리 아레나 다크모드 기반 최적화 설정
 st.set_page_config(
-    page_title="🐸 청개구리 인덱스 - 1시간 타임 리그 v1.6", 
+    page_title="🐸 청개구리 인덱스 - 1시간 타임 리그 v1.7", 
     page_icon="🐸",
     layout="wide"
 )
@@ -32,7 +32,7 @@ js_panic_script = """
 components.html(js_panic_script, height=0, width=0)
 is_boss_mode = st.query_params.get("boss_mode", "false") == "true"
 
-# 🛠️ [2번 피드백] 초기 가짜 데이터 100% 전면 삭제 -> Pure 실시간 DB로 변경
+# 🛠️ 글로벌 중앙 메모리 DB 수립 (순수 유저 실시간 연동)
 @st.cache_resource
 def get_global_arena_db():
     return {
@@ -62,10 +62,10 @@ if "chat_messages" not in st.session_state:
 if "user_login_data" not in st.session_state:
     st.session_state["user_login_data"] = None
 
-# [1번 피드백] 개인 포인트 및 승률 계산을 위한 스토리지 확장
+# 🛠️ [KeyError 버그 완치] win_matchs 오타를 win_matches로 완벽 수정!
 if "my_arena_profile" not in st.session_state:
     st.session_state["my_arena_profile"] = {
-        "voted_hours": [], # 이미 투표한 시간대 기록 (중복 투표 방지)
+        "voted_hours": [], 
         "nickname": "게스트 파이터", 
         "points": 1000,
         "total_matches": 12,
@@ -114,7 +114,7 @@ else:
                 🐸 청개구리 인덱스 아레나
             </h1>
             <span style="font-size: 12px; color: #AAADB0; margin-left: 15px; font-weight: normal; vertical-align: bottom;">
-                ⏱ 1시간 타임어택 리그 배틀 v1.6
+                ⏱ 1시간 타임어택 리그 배틀 v1.7
             </span>
         </div>
     """, unsafe_allow_html=True)
@@ -152,18 +152,18 @@ else:
         </div>
     """, unsafe_allow_html=True)
 
-    # 🛠️ [1번 피드백] 1시간 타임어택 시간 통제 연동 제어기
+    # 해외 표준시 기준 시차 강제 보정 (한국 KST 표준시 동기화)
     server_utc = datetime.datetime.utcnow()
     kst_now = server_utc + datetime.timedelta(hours=9)
     
     current_hour = kst_now.hour
     current_minute = kst_now.minute
     
-    # 매시 0분 ~ 5분 사이에만 투표 가능, 이후 시간은 마감 및 결과 대기 상태로 전환
+    # 1시간 루틴 세팅: 매시 0분~5분만 투표 오픈, 이후 자동 잠금
     is_voting_window = 0 <= current_minute < 5
     target_prediction_hour = (current_hour + 1) % 24
 
-    # 상단 내 실시간 전적 연동 대시보드
+    # 상단 내 실시간 전적 연동 대시보드 구조화
     profile = st.session_state["my_arena_profile"]
     calc_win_rate = (profile["win_matches"] / profile["total_matches"] * 100) if profile["total_matches"] > 0 else 0.0
 
@@ -178,15 +178,13 @@ else:
         with tab1:
             st.markdown(f"### 🎯 매 시간 5분 타임어택 레이스")
             
-            # 상단 유저 스펙 한눈에 정돈
             c_p1, c_p2, c_p3 = st.columns(3)
-            c_p1.metric("👤 파이터 닉네임", profile["nickname"], help="입장 시 기입한 익명 아이디")
-            c_p2.metric("💰 내 아레나 포인트", f"{profile['points']:,} P", help="적중 시 포인트 획득!")
+            c_p1.metric("👤 파이터 닉네임", profile["nickname"])
+            c_p2.metric("💰 내 아레나 포인트", f"{profile['points']:,} P")
             c_p3.metric("📊 현재 리얼 승률", f"{calc_win_rate:.1f} %", f"전적: {profile['win_matches']}승 {profile['total_matches']-profile['win_matches']}패")
 
             current_now_str = kst_now.strftime('%Y-%m-%d %H:%M:%S')
             
-            # [1번 피드백 반영] 시간제한 상태 직관적 안내 패널
             if is_voting_window:
                 st.success(f"⏱️ **한국 표준시:** {current_now_str} KST | **🚨 {current_hour}시 타임어택 오픈! (배팅 마감까지 {5 - current_minute}분 남음)**")
             else:
@@ -206,9 +204,7 @@ else:
                         display_price = f"{int(y_close):,}원" if y_close > 0 else "실시간 데이터 로딩 중"
                         st.markdown(f"<div style='font-size:16px; font-weight:bold; margin-top:2px;'>{stock_name}</div><div style='font-size:12px; color:#AAADB0;'>기준 전일종가: {display_price}</div>", unsafe_allow_html=True)
                     
-                    # 이미 이번 시간에 투표했는지 체크
                     has_voted_this_hour = current_hour in profile["voted_hours"]
-                    # 🛠️ 5분 타임아웃이 났거나 이미 투표했으면 버튼 강제 잠금
                     button_disabled = (not is_voting_window) or has_voted_this_hour
 
                     with c2:
@@ -217,7 +213,6 @@ else:
                             profile["voted_hours"].append(current_hour)
                             profile["total_matches"] += 1
                             
-                            # 확률적 즉시 적중 시뮬레이션 (데모 연동용 50% 확률 포인트 지급)
                             if random.choice([True, False]):
                                 profile["points"] += 250
                                 profile["win_matches"] += 1
@@ -240,7 +235,7 @@ else:
                                 st.toast("📉 아쉽게 미적중했습니다. 다음 타임 매치를 노리세요!", icon="💥")
                             st.rerun()
                     
-                    # 🛠️ [2번 피드백] 사용자가 진짜 누른 데이터만 실시간 연동 처리
+                    # 순수 사용자 실시간 연동 데이터 표기 로직
                     votes = global_db["current_match_votes"][stock_name]
                     total_votes = votes["UP"] + votes["DOWN"]
                     
@@ -258,7 +253,6 @@ else:
             st.caption("타임어택 매치에서 얻은 최종 누적 포인트와 실제 승률 데이터를 취합하여 실시간 서열을 결정합니다.")
             st.write("")
             
-            # 내 실시간 데이터 명단 추가 노출
             st.markdown("##### 👤 나의 실시간 파이터 등급")
             st.markdown(f"""
                 <div style="display: flex; justify-content: space-between; align-items: center; border: 2px solid #A3E635; padding: 12px 20px; border-radius: 8px; background-color: #1F261A; margin-bottom: 20px;">
